@@ -234,7 +234,7 @@ const badgeStyle = (c: string) => ({ color: c, backgroundColor: c + '1F' })
     >
       <template v-if="funnelBoard" #actions>
         <NuxtLink
-          :to="`/admin/pipelines?board=${funnelBoard.key}`"
+          :to="`/admin/pipelines/${funnelBoard.key}`"
           class="inline-flex items-center gap-1.5 h-[38px] px-4 bg-white border border-slate-300 text-slate-700 text-[13px] font-semibold rounded-lg no-underline hover:bg-slate-100"
         >
           ← Voltar ao pipeline

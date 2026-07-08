@@ -9,7 +9,7 @@ const boardLinks = computed(() =>
   [...pipelines.value].sort((a, b) => a.order - b.order).map((p) => ({ label: p.label, key: p.key })),
 )
 const boardActive = (key: string) =>
-  route.path === '/admin/pipelines' && route.query.board === key
+  route.path === `/admin/pipelines/${key}` || route.path.startsWith(`/admin/pipelines/${key}/`)
 
 interface NavItem {
   label: string
@@ -138,7 +138,7 @@ async function signOut() {
                   <NuxtLink
                     v-for="b in boardLinks"
                     :key="b.key"
-                    :to="`/admin/pipelines?board=${b.key}`"
+                    :to="`/admin/pipelines/${b.key}`"
                     class="flex items-center gap-2 h-[32px] px-3 rounded-lg text-[13px] font-medium no-underline transition-all"
                     :class="
                       boardActive(b.key)
