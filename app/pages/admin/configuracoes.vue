@@ -51,8 +51,8 @@ const route = useRoute()
 const sections = ref<Section[]>([])
 const stages = ref<Stage[]>([])
 const loading = ref(true)
-// abre na aba pedida pela URL (ex.: vindo do botão "Configurar pipeline")
-const tab = ref<'fields' | 'funnel'>(route.query.tab === 'funnel' ? 'funnel' : 'fields')
+// página é a configuração do pipeline: abre no Funil por padrão (Campos = ?tab=fields)
+const tab = ref<'fields' | 'funnel'>(route.query.tab === 'fields' ? 'fields' : 'funnel')
 
 // caches compartilhados usados por pipelines/crm/drawer — mantê-los em dia
 const { loadStages } = useStages()
@@ -228,7 +228,19 @@ const badgeStyle = (c: string) => ({ color: c, backgroundColor: c + '1F' })
 
 <template>
   <div class="p-4 sm:p-6">
-    <PageHeader title="Configurações" subtitle="Campos personalizados e funil — sem código." />
+    <PageHeader
+      :title="funnelBoard ? `Configurações · ${funnelBoard.label}` : 'Configurações'"
+      subtitle="Dono e etapas do funil deste pipeline. Os campos personalizados valem para todo o CRM."
+    >
+      <template v-if="funnelBoard" #actions>
+        <NuxtLink
+          :to="`/admin/pipelines?board=${funnelBoard.key}`"
+          class="inline-flex items-center gap-1.5 h-[38px] px-4 bg-white border border-slate-300 text-slate-700 text-[13px] font-semibold rounded-lg no-underline hover:bg-slate-100"
+        >
+          ← Voltar ao pipeline
+        </NuxtLink>
+      </template>
+    </PageHeader>
 
     <div v-if="loading" class="text-slate-400 text-[14px] py-12 text-center">Carregando…</div>
 
@@ -305,18 +317,9 @@ const badgeStyle = (c: string) => ({ color: c, backgroundColor: c + '1F' })
         <div class="flex items-center justify-between mb-3 gap-3 flex-wrap">
           <div>
             <h2 class="text-[15px] font-bold text-slate-900 m-0">Funil</h2>
-            <p class="text-[12.5px] text-slate-400 m-0">Estágios do board. "No kanban" aparece como coluna.</p>
+            <p class="text-[12.5px] text-slate-400 m-0">Etapas do pipeline. "No kanban" aparece como coluna.</p>
           </div>
-          <div class="flex items-center gap-2">
-            <select
-              v-if="pipelines.length > 1"
-              v-model="funnelBoardId"
-              class="h-[36px] pl-3 pr-8 text-[13px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg outline-none cursor-pointer focus:border-brand"
-            >
-              <option v-for="p in pipelines" :key="p.id" :value="p.id">{{ p.label }}</option>
-            </select>
-            <button class="h-[36px] px-3.5 bg-slate-900 text-white text-[13px] font-semibold rounded-lg cursor-pointer border-none hover:bg-slate-800" @click="newStage">+ Novo estágio</button>
-          </div>
+          <button class="h-[36px] px-3.5 bg-slate-900 text-white text-[13px] font-semibold rounded-lg cursor-pointer border-none hover:bg-slate-800" @click="newStage">+ Novo estágio</button>
         </div>
 
         <!-- DONO DO PIPELINE (ownership leve: abre no board da pessoa, sem bloquear os outros) -->

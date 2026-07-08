@@ -25,10 +25,11 @@ const nav: NavItem[] = [
     to: '/admin/crm',
     icon: 'opportunities',
     children: [
+      // Pipelines: as configurações de cada pipeline (dono + funil) são acessadas pelo
+      // botão ⚙ na própria página do pipeline — por isso não há mais item "Configurações".
       { label: 'Pipelines', to: '/admin/pipelines', icon: 'opportunities', boards: true },
       { label: 'Contatos', to: '/admin/contatos', icon: 'contacts' },
       { label: 'Follow-up', to: '/admin/follow-up', icon: 'followup' },
-      { label: 'Configurações', to: '/admin/configuracoes', icon: 'settings' },
     ],
   },
   {

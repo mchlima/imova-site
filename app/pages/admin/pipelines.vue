@@ -670,7 +670,7 @@ async function persistBoard() {
         </div>
       </div>
 
-      <!-- KANBAN (visão quadro) — colunas Lead / Contatar / Qualificar -->
+      <!-- KANBAN (visão quadro) — colunas sempre lado a lado, com scroll lateral -->
       <div v-else>
         <div v-if="loading" class="text-center py-12 text-slate-400 text-[14px]">
           Carregando oportunidades…
@@ -681,11 +681,11 @@ async function persistBoard() {
             Tentar de novo
           </button>
         </div>
-        <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+        <div v-else class="flex gap-4 items-start overflow-x-auto pb-3 -mx-1 px-1">
           <div
             v-for="col in boardCols"
             :key="col.status"
-            class="bg-slate-100/70 rounded-xl p-2.5"
+            class="w-[248px] shrink-0 bg-slate-100/70 rounded-xl p-2.5"
           >
             <!-- header da coluna -->
             <div class="flex items-center gap-2 px-2 py-2">
