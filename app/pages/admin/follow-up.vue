@@ -21,7 +21,7 @@ interface PendingActivity {
   createdAt: string
   opportunity: {
     id: string
-    status: string
+    stageId: string | null
     temperature: string
     fields: Record<string, unknown>
     contact: { name: string; channels: { type: string; value: string }[] }

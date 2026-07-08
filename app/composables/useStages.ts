@@ -2,7 +2,8 @@
 // Substitui as constantes de status hardcoded no front — o funil é dado.
 export interface Stage {
   id: string
-  key: string
+  // id estável para integrações externas referenciarem o estágio
+  externalId: string
   label: string
   color: string
   order: number
@@ -47,18 +48,18 @@ export function useStages() {
     orderedStages.value.filter((s) => s.pipelineId === pipelineId)
   const kanbanStagesFor = (pipelineId: string | null | undefined) =>
     stagesFor(pipelineId).filter((s) => s.inKanban)
-  const firstStageKeyFor = (pipelineId: string | null | undefined) => stagesFor(pipelineId)[0]?.key || ''
-  // lookup por key (== Opportunity.status)
+  const firstStageIdFor = (pipelineId: string | null | undefined) => stagesFor(pipelineId)[0]?.id || ''
+  // lookup por id (== Opportunity.stageId)
   const stageMap = computed<Record<string, Stage>>(() =>
-    Object.fromEntries(stages.value.map((s) => [s.key, s])),
+    Object.fromEntries(stages.value.map((s) => [s.id, s])),
   )
 
-  const stageColor = (key: string) => stageMap.value[key]?.color || FALLBACK_COLOR
-  const stageLabel = (key: string) => stageMap.value[key]?.label || key
+  const stageColor = (id: string | null | undefined) => (id && stageMap.value[id]?.color) || FALLBACK_COLOR
+  const stageLabel = (id: string | null | undefined) => (id && stageMap.value[id]?.label) || '—'
 
   // badge com cor derivada do dado: texto na cor forte, fundo num tom claro (~12%).
-  const stageBadgeStyle = (key: string) => {
-    const c = stageColor(key)
+  const stageBadgeStyle = (id: string | null | undefined) => {
+    const c = stageColor(id)
     return { color: c, backgroundColor: c + '1F' }
   }
 
@@ -69,7 +70,7 @@ export function useStages() {
     kanbanStages,
     stagesFor,
     kanbanStagesFor,
-    firstStageKeyFor,
+    firstStageIdFor,
     stageMap,
     stageColor,
     stageLabel,

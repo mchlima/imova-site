@@ -30,7 +30,7 @@ loadFieldDefinitions()
 
 const boardStages = computed(() => stagesFor(props.pipelineId))
 const stageOptions = computed(() =>
-  boardStages.value.map((s) => ({ value: s.key, label: s.label, color: s.color })),
+  boardStages.value.map((s) => ({ value: s.id, label: s.label, color: s.color })),
 )
 const tempOptions = TEMPS.map((t) => ({ value: t, label: t, color: TEMP_HEX[t] || '#94A3B8' }))
 
@@ -39,7 +39,7 @@ const tempOptions = TEMPS.map((t) => ({ value: t, label: t, color: TEMP_HEX[t] |
 const mode = ref<'existing' | 'new'>('existing')
 const contactId = ref('')
 const newContact = reactive({ name: '', channels: [] as DraftChannel[] })
-const stageKey = ref('')
+const stageId = ref('')
 const temperature = ref('Sem classificação')
 // origem do lead — campo aberto (texto livre); vazio cai em 'manual'
 const source = ref('')
@@ -79,7 +79,7 @@ function reset() {
   contactId.value = ''
   newContact.name = ''
   newContact.channels = []
-  stageKey.value = boardStages.value[0]?.key || ''
+  stageId.value = boardStages.value[0]?.id || ''
   temperature.value = 'Sem classificação'
   source.value = ''
   assignees.value = []
@@ -114,7 +114,7 @@ async function create() {
   const body: Record<string, unknown> = {
     source: source.value.trim() || 'manual',
     pipelineId: props.pipelineId || undefined,
-    stageKey: stageKey.value || undefined,
+    stageId: stageId.value || undefined,
     temperature: temperature.value,
     fields: fieldValues,
     assigneeIds: assignees.value.map((a) => a.id),
@@ -229,7 +229,7 @@ const seg = 'h-[34px] px-3 text-[13px] font-semibold rounded-md cursor-pointer b
               </div>
               <div class="flex items-center justify-between gap-3">
                 <span class="text-[13px] font-semibold text-slate-700">Estágio</span>
-                <ChipSelect v-model="stageKey" :options="stageOptions" />
+                <ChipSelect v-model="stageId" :options="stageOptions" />
               </div>
               <div class="flex items-center justify-between gap-3">
                 <span class="text-[13px] font-semibold text-slate-700">Responsáveis</span>

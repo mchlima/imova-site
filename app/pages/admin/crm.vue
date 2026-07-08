@@ -7,7 +7,7 @@ useHead({ meta: [{ name: 'robots', content: 'noindex, nofollow' }] })
 const apiBase = useRuntimeConfig().public.apiBase
 
 // funil como dado (GET /stages) — o funil do gráfico é escopado a um board
-const { loadStages, stagesFor, stageColor, stageBadgeStyle } = useStages()
+const { loadStages, stagesFor, stageColor, stageBadgeStyle, stageLabel } = useStages()
 // boards: o gráfico de funil mostra um board por vez (padrão = Captação)
 const { pipelines, loadPipelines, defaultPipeline } = usePipelines()
 const funnelBoardId = ref('')
@@ -63,7 +63,8 @@ const followups = computed(() => {
   return { overdue, today: todayC, upcoming, total: pending.value.length }
 })
 
-const statusCount = (s: string) => opportunities.value.filter((l) => l.status === s).length
+const stageCount = (id: string | undefined) =>
+  id ? opportunities.value.filter((l) => l.stageId === id).length : 0
 
 const TEMPS = ['Quente', 'Morno', 'Frio', 'Sem classificação']
 const tempCount = (t: string) => opportunities.value.filter((l) => l.temperature === t).length
@@ -78,7 +79,7 @@ const recent = computed(() => opportunities.value.slice(0, 6))
 
 const stats = computed(() => [
   { label: 'Oportunidades', value: opportunities.value.length, icon: 'opportunities', accent: true },
-  { label: 'Novos (Lead)', value: statusCount('Lead'), icon: 'opportunities' },
+  { label: 'Novos', value: stageCount(funnelStages.value[0]?.id), icon: 'opportunities' },
   { label: 'Quentes', value: tempCount('Quente'), icon: 'opportunities' },
   { label: 'Atrasadas', value: followups.value.overdue, icon: 'followup', to: '/admin/follow-up', danger: followups.value.overdue > 0 },
   { label: 'Hoje', value: followups.value.today, icon: 'followup', to: '/admin/follow-up' },
@@ -88,15 +89,15 @@ const stats = computed(() => [
 // ── gráficos (ApexCharts) ──
 const oppFmt = (v: number) => `${v} oportunidade${v === 1 ? '' : 's'}`
 
-// funil por status (barras horizontais, na ordem do funil) — cores/labels do dado,
-// escopado ao board selecionado (as keys são únicas entre boards).
+// funil por estágio (barras horizontais, na ordem do funil) — cores/labels do dado,
+// escopado ao board selecionado.
 const statusSeries = computed(() => [
-  { name: 'Oportunidades', data: funnelStages.value.map((s) => statusCount(s.key)) },
+  { name: 'Oportunidades', data: funnelStages.value.map((s) => stageCount(s.id)) },
 ])
 const statusOptions = computed(() => ({
   chart: { type: 'bar', toolbar: { show: false }, fontFamily: 'inherit', animations: { speed: 400 } },
   plotOptions: { bar: { horizontal: true, distributed: true, borderRadius: 6, barHeight: '60%' } },
-  colors: funnelStages.value.map((s) => stageColor(s.key)),
+  colors: funnelStages.value.map((s) => stageColor(s.id)),
   dataLabels: { enabled: true, style: { fontWeight: 700, colors: ['#fff'], fontSize: '12px' } },
   xaxis: { categories: funnelStages.value.map((s) => s.label), labels: { style: { colors: '#94a3b8', fontSize: '12px' } } },
   yaxis: { labels: { style: { colors: '#475569', fontSize: '12.5px', fontWeight: 600 } } },
@@ -255,7 +256,7 @@ const tempOptions = computed(() => ({
                 <span class="inline-flex items-center h-[22px] px-2 rounded-md text-[11px] font-semibold" :class="tempCls[l.temperature]">{{ l.temperature }}</span>
               </td>
               <td class="py-3 px-3">
-                <span class="inline-flex items-center h-[22px] px-2 rounded-md text-[11px] font-semibold" :style="stageBadgeStyle(l.status)">{{ l.status }}</span>
+                <span class="inline-flex items-center h-[22px] px-2 rounded-md text-[11px] font-semibold" :style="stageBadgeStyle(l.stageId)">{{ stageLabel(l.stageId) }}</span>
               </td>
               <td class="py-3 px-4 text-[12.5px] text-slate-400 whitespace-nowrap text-right">{{ l.date }}</td>
             </tr>

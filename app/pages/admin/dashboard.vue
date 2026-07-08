@@ -9,11 +9,14 @@ const apiBase = useRuntimeConfig().public.apiBase
 interface Opportunity {
   id: string
   contact: { name: string }
-  status: string
+  stageId: string | null
   temperature: string
   fields: Record<string, unknown>
   createdAt: string
 }
+
+const { loadStages, stages } = useStages()
+loadStages()
 
 const opportunities = ref<Opportunity[]>([])
 const loading = ref(true)
@@ -32,13 +35,19 @@ onMounted(async () => {
 })
 
 const count = (fn: (l: Opportunity) => boolean) => opportunities.value.filter(fn).length
+// resolve estágios por rótulo (o funil é dado; não há mais key fixa)
+const stageIds = (re: RegExp) =>
+  new Set(stages.value.filter((s) => re.test(s.label)).map((s) => s.id))
+const novoIds = computed(() => stageIds(/lead|novo/i))
+const qualIds = computed(() => stageIds(/qualific/i))
+const inStages = (l: Opportunity, ids: Set<string>) => !!l.stageId && ids.has(l.stageId)
 
 const cards = computed(() => [
   { label: 'Total de oportunidades', value: opportunities.value.length, accent: 'text-slate-900' },
-  { label: 'Novos (Lead)', value: count((l) => l.status === 'Lead'), accent: 'text-[#1E40AF]' },
+  { label: 'Novos', value: count((l) => inStages(l, novoIds.value)), accent: 'text-[#1E40AF]' },
   {
     label: 'Em qualificação',
-    value: count((l) => l.status === 'Qualificar'),
+    value: count((l) => inStages(l, qualIds.value)),
     accent: 'text-amber-700',
   },
   { label: 'Quentes', value: count((l) => l.temperature === 'Quente'), accent: 'text-brand' },

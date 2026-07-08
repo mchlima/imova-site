@@ -9,7 +9,7 @@ const opts = { baseURL: apiBase, credentials: 'include' as const }
 
 interface Stage {
   id: string
-  key: string
+  externalId: string
   label: string
   color: string
   order: number
@@ -46,7 +46,7 @@ async function setFunnelOwner(uid: string) {
   await updatePipeline(funnelBoard.value.id, { ownerUserId: uid || null })
 }
 
-// nome (label) editável — a key fica no dado (uso futuro), fora das configurações.
+// nome (label) e cor editáveis — a identidade é o id (interno) + externalId (integrações).
 const editName = ref('')
 const savingMeta = ref(false)
 const metaError = ref('')
@@ -112,23 +112,23 @@ async function move(list: { id: string; order: number }[], endpoint: string, idx
 
 // ── modal de estágio ──
 const stm = reactive({
-  open: false, editing: '' as string, key: '', label: '', color: '#1E40AF',
+  open: false, editing: '' as string, externalId: '', label: '', color: '#1E40AF',
   inKanban: true, isWon: false, isLost: false,
 })
 function newStage() {
-  Object.assign(stm, { open: true, editing: '', key: '', label: '', color: '#1E40AF', inKanban: true, isWon: false, isLost: false })
+  Object.assign(stm, { open: true, editing: '', externalId: '', label: '', color: '#1E40AF', inKanban: true, isWon: false, isLost: false })
 }
 function editStage(s: Stage) {
-  Object.assign(stm, { open: true, editing: s.id, key: s.key, label: s.label, color: s.color || '#1E40AF', inKanban: s.inKanban, isWon: s.isWon, isLost: s.isLost })
+  Object.assign(stm, { open: true, editing: s.id, externalId: s.externalId, label: s.label, color: s.color || '#1E40AF', inKanban: s.inKanban, isWon: s.isWon, isLost: s.isLost })
 }
 async function saveStage() {
-  if (!stm.label.trim() || !stm.key.trim()) return
+  if (!stm.label.trim()) return
   const base = { label: stm.label, color: stm.color, inKanban: stm.inKanban, isWon: stm.isWon, isLost: stm.isLost }
   if (stm.editing) {
-    await $fetch(`/stages/${stm.editing}`, { ...opts, method: 'PATCH', body: { ...base, key: stm.key } })
+    await $fetch(`/stages/${stm.editing}`, { ...opts, method: 'PATCH', body: base })
   } else {
-    // cria no pipeline desta página
-    await $fetch('/stages', { ...opts, method: 'POST', body: { ...base, key: stm.key, pipelineId: funnelBoardId.value || undefined } })
+    // cria no pipeline desta página (id/externalId gerados no backend)
+    await $fetch('/stages', { ...opts, method: 'POST', body: { ...base, pipelineId: funnelBoardId.value || undefined } })
   }
   stm.open = false
   await loadAll()
@@ -267,13 +267,6 @@ const badgeStyle = (c: string) => ({ color: c, backgroundColor: c + '1F' })
       <div class="bg-white rounded-xl w-full max-w-[400px] p-5" @click.stop>
         <h3 class="text-[15px] font-bold text-slate-900 m-0 mb-4">{{ stm.editing ? 'Editar estágio' : 'Novo estágio' }}</h3>
         <div class="flex flex-col gap-3">
-          <div>
-            <label :class="label">Chave (key)</label>
-            <input v-model="stm.key" :class="input" placeholder="ex: Negociando" />
-            <p v-if="stm.editing" class="text-[11px] text-amber-600 mt-1">
-              Mudar a key move as oportunidades deste estágio para a nova chave automaticamente.
-            </p>
-          </div>
           <div class="grid grid-cols-[1fr_auto] gap-3 items-end">
             <div>
               <label :class="label">Nome</label>
@@ -288,6 +281,16 @@ const badgeStyle = (c: string) => ({ color: c, backgroundColor: c + '1F' })
             <label class="inline-flex items-center gap-2 cursor-pointer text-[13px] text-slate-700"><input v-model="stm.inKanban" type="checkbox" class="w-4 h-4 accent-brand" /> Aparece no kanban</label>
             <label class="inline-flex items-center gap-2 cursor-pointer text-[13px] text-slate-700"><input v-model="stm.isWon" type="checkbox" class="w-4 h-4 accent-brand" /> Estágio de ganho</label>
             <label class="inline-flex items-center gap-2 cursor-pointer text-[13px] text-slate-700"><input v-model="stm.isLost" type="checkbox" class="w-4 h-4 accent-brand" /> Estágio de perda</label>
+          </div>
+          <div v-if="stm.editing" class="mt-1">
+            <label :class="label">ID externo (integrações)</label>
+            <input
+              :value="stm.externalId"
+              readonly
+              class="w-full h-9 px-3 text-[12px] font-mono text-slate-500 bg-slate-50 border border-slate-200 rounded-lg cursor-text select-all"
+              @focus="(e) => (e.target as HTMLInputElement).select()"
+            />
+            <p class="text-[11px] text-slate-400 mt-1">Estável — use este id para referenciar o estágio em integrações.</p>
           </div>
         </div>
         <div class="flex justify-end gap-2 mt-5">

@@ -16,7 +16,7 @@ const route = useRoute()
 
 // funil como dado (GET /stages) — nada de status hardcoded. Com 2+ boards, cada um
 // tem seus estágios: filtramos por board ativo (kanbanStagesFor / stagesFor).
-const { loadStages, kanbanStagesFor, stagesFor, stageBadgeStyle } = useStages()
+const { loadStages, kanbanStagesFor, stagesFor, stageBadgeStyle, stageLabel } = useStages()
 
 // pipelines — a navegação entre eles é pelo menu (CRM › Pipelines). Ownership leve:
 // abre no pipeline do usuário (dono), mas ninguém fica bloqueado de ver os outros.
@@ -62,7 +62,7 @@ async function loadOpportunities() {
 // filters — sem acoplamento com campos do simulador.
 // Localização filtra pelo ENDEREÇO do contato (residência), não pelo interesse.
 const fSearch = ref('')
-const fStatus = ref('')
+const fStageId = ref('')
 const fTemperature = ref('')
 const fUf = ref('')
 const fCity = ref('')
@@ -174,7 +174,7 @@ const filtered = computed(() => {
     // toda a tela é escopada ao board ativo
     if (activePipelineId.value && l.pipelineId !== activePipelineId.value) return false
     if (q && !(l.contact.name + ' ' + l.contact.channels.map((c) => c.value).join(' ')).toLowerCase().includes(q)) return false
-    if (fStatus.value && l.status !== fStatus.value) return false
+    if (fStageId.value && l.stageId !== fStageId.value) return false
     if (fTemperature.value && l.temperature !== fTemperature.value) return false
     if (fUf.value && l.contact.residenceUf !== fUf.value) return false
     if (fCity.value && l.contact.residenceCity !== fCity.value) return false
@@ -203,17 +203,17 @@ watch(filtered, () => {
 
 // Painel de filtros suspenso.
 function clearFilters() {
-  fStatus.value = fTemperature.value = fUf.value = fCity.value = ''
+  fStageId.value = fTemperature.value = fUf.value = fCity.value = ''
 }
 const filtersOpen = ref(false)
 const activeFilters = computed(
-  () => [fStatus.value, fTemperature.value, fUf.value, fCity.value].filter((v) => v !== '').length,
+  () => [fStageId.value, fTemperature.value, fUf.value, fCity.value].filter((v) => v !== '').length,
 )
 // chips de filtro no mesmo padrão dos chips do drawer (hex+alpha quando ativo)
 const chipBase =
   'inline-flex items-center h-[30px] px-3 rounded-full text-[12.5px] font-semibold cursor-pointer transition-all border'
 const chipInactive = 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-const toggleStatus = (v: string) => (fStatus.value = fStatus.value === v ? '' : v)
+const toggleStage = (v: string) => (fStageId.value = fStageId.value === v ? '' : v)
 const toggleTemp = (v: string) => (fTemperature.value = fTemperature.value === v ? '' : v)
 
 // indicador da próxima atividade pendente (na tabela)
@@ -256,16 +256,16 @@ watch(view, (v) => {
 // Colunas reativas para o vuedraggable (cada uma com sua lista de cards).
 // As listas guardam REFERÊNCIAS aos objetos de `opportunities`, então mexer no
 // status/boardOrder de um card reflete na lista também.
-const boardCols = ref<{ status: string; label: string; color: string; items: Opportunity[] }[]>([])
+const boardCols = ref<{ stageId: string; label: string; color: string; items: Opportunity[] }[]>([])
 let suppressRebuild = false
 
 function rebuildBoard() {
   boardCols.value = activeKanbanStages.value.map((col) => ({
-    status: col.key,
+    stageId: col.id,
     label: col.label,
     color: col.color,
     items: filtered.value
-      .filter((o) => o.status === col.key)
+      .filter((o) => o.stageId === col.id)
       .sort(
         (a, b) =>
           a.boardOrder - b.boardOrder ||
@@ -284,13 +284,13 @@ watch([filtered, view, activeKanbanStages], () => {
 // atual e persiste em lote (status + boardOrder) os cards que mudaram.
 async function persistBoard() {
   suppressRebuild = true
-  const updates: { id: string; status: string; boardOrder: number }[] = []
+  const updates: { id: string; stageId: string; boardOrder: number }[] = []
   for (const col of boardCols.value) {
     col.items.forEach((o, idx) => {
-      if (o.status !== col.status || o.boardOrder !== idx) {
-        o.status = col.status
+      if (o.stageId !== col.stageId || o.boardOrder !== idx) {
+        o.stageId = col.stageId
         o.boardOrder = idx
-        updates.push({ id: o.id, status: col.status, boardOrder: idx })
+        updates.push({ id: o.id, stageId: col.stageId, boardOrder: idx })
       }
     })
   }
@@ -411,11 +411,11 @@ async function persistBoard() {
                 <div class="flex flex-wrap gap-1.5">
                   <button
                     v-for="s in activeStages"
-                    :key="s.key"
+                    :key="s.id"
                     type="button"
-                    :class="[chipBase, fStatus === s.key ? 'border-transparent shadow-sm' : chipInactive]"
-                    :style="fStatus === s.key ? stageBadgeStyle(s.key) : undefined"
-                    @click="toggleStatus(s.key)"
+                    :class="[chipBase, fStageId === s.id ? 'border-transparent shadow-sm' : chipInactive]"
+                    :style="fStageId === s.id ? stageBadgeStyle(s.id) : undefined"
+                    @click="toggleStage(s.id)"
                   >
                     {{ s.label }}
                   </button>
@@ -607,7 +607,7 @@ async function persistBoard() {
                   <span :class="badgeBase" :style="tempBadgeStyle(l.temperature)">{{ l.temperature }}</span>
                 </td>
                 <td class="py-[13px] px-3">
-                  <span :class="badgeBase" :style="stageBadgeStyle(l.status)">{{ l.status }}</span>
+                  <span :class="badgeBase" :style="stageBadgeStyle(l.stageId)">{{ stageLabel(l.stageId) }}</span>
                 </td>
                 <td class="py-[13px] px-4 text-[12.5px] text-slate-400 whitespace-nowrap">
                   <div class="flex items-center justify-between gap-2">
@@ -695,7 +695,7 @@ async function persistBoard() {
         <div v-else class="flex gap-4 items-stretch overflow-x-auto flex-1 min-h-0">
           <div
             v-for="col in boardCols"
-            :key="col.status"
+            :key="col.stageId"
             class="w-[296px] shrink-0 bg-slate-100/70 rounded-xl p-2.5 flex flex-col overflow-hidden"
           >
             <!-- header da coluna -->

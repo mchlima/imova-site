@@ -87,7 +87,8 @@ export interface Opportunity {
   id: string
   contact: Contact
   source: string
-  status: string
+  // estágio atual do funil (id interno). Pode vir null em bases antigas.
+  stageId: string | null
   // board (pipeline) onde a oportunidade vive. Pode vir null em bases antigas.
   pipelineId: string | null
   boardOrder: number

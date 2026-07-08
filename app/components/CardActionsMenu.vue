@@ -85,8 +85,8 @@ async function patch(body: Record<string, unknown>, optimistic?: Partial<Opportu
   }
 }
 
-async function setStage(key: string) {
-  await patch({ status: key }, { status: key })
+async function setStage(stageId: string) {
+  await patch({ stageId }, { stageId })
   close()
 }
 async function setTemp(t: string) {
@@ -105,13 +105,13 @@ async function toggleAssignee(u: CrmUser) {
 }
 async function markWon() {
   if (!wonStage.value) return
-  await patch({ status: wonStage.value.key }, { status: wonStage.value.key })
+  await patch({ stageId: wonStage.value.id }, { stageId: wonStage.value.id })
   close()
 }
 // marca como perdido escolhendo um motivo curado (submenu 'lost')
 async function setLost(reason: string) {
   if (!lostStage.value) return
-  await patch({ status: lostStage.value.key, lossReason: reason }, { status: lostStage.value.key })
+  await patch({ stageId: lostStage.value.id, lossReason: reason }, { stageId: lostStage.value.id })
   close()
 }
 async function moveTo(b: Pipeline) {
@@ -258,12 +258,12 @@ const MIcon = (props: { name: string; class?: unknown }) =>
         <template v-else-if="view === 'stage'">
           <button :class="head" @click="view = 'root'"><span :class="chev">←</span> Mudar etapa</button>
           <div :class="divider" />
-          <button v-for="s in stages" :key="s.key" :class="item" @click="setStage(s.key)">
+          <button v-for="s in stages" :key="s.id" :class="item" @click="setStage(s.id)">
             <span class="flex items-center gap-2.5">
               <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: s.color }"></span>
               {{ s.label }}
             </span>
-            <span v-if="opp.status === s.key" class="text-brand">✓</span>
+            <span v-if="opp.stageId === s.id" class="text-brand">✓</span>
           </button>
         </template>
 

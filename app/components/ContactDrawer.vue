@@ -8,7 +8,7 @@ const apiBase = useRuntimeConfig().public.apiBase
 
 interface OppSummary {
   id: string
-  status: string
+  stageId: string | null
   temperature: string
   fields: Record<string, unknown>
   createdAt: string
@@ -50,7 +50,7 @@ function onContactUpdated(c: Contact) {
 }
 
 // funil como dado — cor do badge de status vem de GET /stages
-const { loadStages, stageBadgeStyle } = useStages()
+const { loadStages, stageBadgeStyle, stageLabel } = useStages()
 loadStages()
 
 // animações: backdrop (fade) e painel (slide da direita)
@@ -127,8 +127,8 @@ const slideT = {
               </div>
               <span
                 class="inline-flex items-center h-[22px] px-2 rounded-md text-[11px] font-semibold shrink-0"
-                :style="stageBadgeStyle(o.status)"
-                >{{ o.status }}</span
+                :style="stageBadgeStyle(o.stageId)"
+                >{{ stageLabel(o.stageId) }}</span
               >
             </NuxtLink>
           </div>

@@ -390,7 +390,7 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
 
             <!-- chips: status + temperatura (bolinha) + responsáveis -->
             <div class="flex items-center gap-2.5 flex-wrap mt-3">
-              <span :class="badgeBase" :style="stageBadgeStyle(sel.status)">{{ stageLabel(sel.status) }}</span>
+              <span :class="badgeBase" :style="stageBadgeStyle(sel.stageId)">{{ stageLabel(sel.stageId) }}</span>
               <span class="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-600">
                 <span class="w-2.5 h-2.5 rounded-full shrink-0" :style="{ backgroundColor: tempBadgeStyle(sel.temperature).color }"></span>
                 {{ sel.temperature }}
