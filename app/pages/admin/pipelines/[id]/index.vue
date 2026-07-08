@@ -320,14 +320,14 @@ async function persistBoard() {
             class="w-full h-[38px] pl-8 pr-3 text-[13.5px] text-slate-900 border border-slate-300 rounded-[7px] outline-none transition-all focus:border-brand focus:ring-[3px] focus:ring-brand/10"
           />
         </div>
-        <DateRangePicker v-model="fRange" icon-only />
-
         <button
           class="inline-flex items-center gap-1.5 h-[38px] px-3.5 bg-brand text-white text-[13px] font-semibold rounded-[7px] cursor-pointer border-none hover:bg-brand-dark shrink-0"
           @click="newOppOpen = true"
         >
           <span class="text-[15px] leading-none">+</span> Nova oportunidade
         </button>
+
+        <DateRangePicker v-model="fRange" icon-only />
 
         <!-- FILTROS (só ícone + painel suspenso) -->
         <div class="relative">
@@ -467,13 +467,13 @@ async function persistBoard() {
           </div>
         </div>
 
-        <!-- área à direita: configurar pipeline (ícone) + toggle lista/kanban (ícones) -->
+        <!-- área à direita: toggle lista/kanban + configurar pipeline por último (ícones) -->
         <div class="ml-auto flex items-center gap-2.5">
-          <!-- configurações do pipeline ativo (dono + etapas do funil) -->
+          <!-- configurações do pipeline ativo (dono + etapas do funil) — por último -->
           <NuxtLink
             v-if="activeBoard"
             :to="settingsLink"
-            class="inline-flex items-center justify-center w-[38px] h-[38px] bg-white border border-slate-200 text-slate-600 rounded-[7px] no-underline transition-all hover:bg-slate-50 hover:text-slate-800"
+            class="order-last inline-flex items-center justify-center w-[38px] h-[38px] bg-white border border-slate-200 text-slate-600 rounded-[7px] no-underline transition-all hover:bg-slate-50 hover:text-slate-800"
             :title="'Configurar ' + activeBoard.label + ' (dono e etapas)'"
           >
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
