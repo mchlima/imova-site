@@ -106,6 +106,13 @@ function waHref(value: string) {
 const badgeBase =
   'inline-flex items-center h-[22px] px-[9px] rounded-md text-[11.5px] font-semibold whitespace-nowrap'
 
+// link de um canal do contato: wa.me (whatsapp/telefone), mailto (email) ou nenhum.
+function channelHref(ch: { type: string; value: string }) {
+  if (ch.type === 'whatsapp' || ch.type === 'telefone') return waHref(ch.value)
+  if (ch.type === 'email') return 'mailto:' + ch.value
+  return ''
+}
+
 // Atualização otimista + PATCH; emite a oportunidade atualizada para o pai.
 async function patchSel(patch: Partial<Opportunity>) {
   const id = sel.value?.id
@@ -335,14 +342,41 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
         <div class="sticky top-0 z-[2] bg-white border-b border-slate-200">
           <div class="px-[22px] pt-[18px] pb-3 flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <div class="flex items-center gap-2 flex-wrap mb-1">
+              <div class="flex items-center gap-2 flex-wrap mb-1.5">
                 <h2 class="text-[19px] font-extrabold tracking-[-0.02em] m-0 text-slate-900 truncate">
                   {{ sel.contact.name }}
                 </h2>
                 <span :class="badgeBase" :style="tempBadgeStyle(sel.temperature)">{{ sel.temperature }}</span>
                 <span :class="badgeBase" :style="stageBadgeStyle(sel.status)">{{ stageLabel(sel.status) }}</span>
               </div>
-              <div class="text-[12.5px] text-slate-400">Recebido em {{ sel.date }}</div>
+
+              <!-- contato: canais (clicáveis) + editar — no header, sem repetir o nome -->
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <component
+                  :is="channelHref(ch) ? 'a' : 'span'"
+                  v-for="ch in sel.contact.channels"
+                  :key="ch.id"
+                  :href="channelHref(ch) || undefined"
+                  :target="channelHref(ch) ? '_blank' : undefined"
+                  :title="CHANNEL_LABELS[ch.type] || ch.type"
+                  class="inline-flex items-center gap-1.5 h-[26px] pl-1.5 pr-2.5 rounded-md bg-slate-100 text-slate-700 text-[12px] font-medium max-w-[220px] no-underline"
+                  :class="channelHref(ch) ? 'cursor-pointer transition-colors hover:bg-brand hover:text-white' : ''"
+                >
+                  <AdminIcon :name="CHANNEL_ICONS[ch.type] || 'message'" :size="13" />
+                  <span class="truncate">{{ ch.value }}</span>
+                </component>
+                <button
+                  type="button"
+                  class="text-[12px] font-semibold text-brand hover:underline cursor-pointer bg-transparent border-none px-1 py-0"
+                  @click="editContactOpen = true"
+                >
+                  Editar →
+                </button>
+              </div>
+
+              <div class="text-[12px] text-slate-400 mt-1.5">
+                Recebido em {{ sel.date }}<template v-if="formatResidence(sel.contact)"> · reside em {{ formatResidence(sel.contact) }}</template>
+              </div>
             </div>
             <button
               class="w-9 h-9 border border-slate-200 bg-white rounded-[7px] text-[16px] text-slate-500 cursor-pointer leading-none shrink-0"
@@ -382,54 +416,6 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
 
         <!-- ABA OPORTUNIDADE -->
         <div v-show="tab === 'oportunidade'" class="px-[22px] pt-5 pb-10 flex flex-col gap-[18px]">
-          <!-- contato (pessoa) — apenas apresentação; edição fica em /admin/contatos -->
-          <div class="bg-white border border-slate-200 rounded-[10px] p-[18px]">
-            <div class="flex items-center justify-between mb-3.5">
-              <div :class="blockLabel" class="mb-0">Contato</div>
-              <button
-                type="button"
-                class="text-[12.5px] font-semibold text-brand hover:underline cursor-pointer bg-transparent border-none p-0"
-                @click="editContactOpen = true"
-              >
-                Editar →
-              </button>
-            </div>
-
-            <div class="mb-3">
-              <div class="text-[11.5px] text-slate-400 mb-0.5">Nome</div>
-              <div class="text-[14px] font-semibold text-slate-900">{{ sel.contact.name }}</div>
-            </div>
-
-            <div v-if="sel.contact.channels?.length" class="flex flex-col gap-1.5">
-              <div
-                v-for="ch in sel.contact.channels"
-                :key="ch.id"
-                class="flex items-center gap-2 border border-slate-100 rounded-lg px-2.5 py-2"
-              >
-                <span
-                  class="inline-flex items-center justify-center w-[26px] h-[26px] rounded-md bg-slate-100 text-slate-500 shrink-0"
-                  :title="CHANNEL_LABELS[ch.type] || ch.type"
-                >
-                  <AdminIcon :name="CHANNEL_ICONS[ch.type] || 'message'" :size="15" />
-                </span>
-                <span class="text-[13px] text-slate-800 truncate flex-1">{{ ch.value }}</span>
-                <a
-                  v-if="ch.type === 'whatsapp' || ch.type === 'telefone'"
-                  :href="waHref(ch.value)"
-                  target="_blank"
-                  class="inline-flex items-center h-[26px] px-2.5 rounded-md bg-brand text-white text-[12px] font-semibold no-underline shrink-0 transition-all hover:bg-brand-dark"
-                  >WhatsApp</a
-                >
-              </div>
-            </div>
-            <div v-else class="text-[12.5px] text-slate-400">Nenhuma forma de contato.</div>
-
-            <div v-if="formatResidence(sel.contact)" class="mt-3">
-              <div class="text-[11.5px] text-slate-400 mb-0.5">Reside em</div>
-              <div class="text-[13px] text-slate-700">{{ formatResidence(sel.contact) }}</div>
-            </div>
-          </div>
-
           <!-- funil: status + temperatura (intrínsecos da oportunidade) -->
           <div class="bg-white border border-slate-200 rounded-[10px] p-[18px]">
             <div :class="blockLabel">Funil</div>
