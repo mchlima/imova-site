@@ -286,7 +286,7 @@ const naIsFuture = computed(
 )
 
 // abas do drawer (a antiga "Oportunidade" saiu — ações vão pro kebab do header)
-const tab = ref<'atividades' | 'comentarios' | 'historico' | 'dados'>('atividades')
+const tab = ref<'atividades' | 'comentarios' | 'documentos' | 'historico' | 'dados'>('atividades')
 
 // ── comentários internos ──
 const { user: authUser } = useAuth()
@@ -577,7 +577,7 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
             </div>
           </div>
           <!-- abas -->
-          <div class="px-[22px] flex gap-5">
+          <div class="px-[22px] flex gap-4 overflow-x-auto">
             <button
               type="button"
               class="pb-2.5 -mb-px text-[13px] font-semibold border-b-2 cursor-pointer bg-transparent transition-colors"
@@ -593,6 +593,14 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
               @click="tab = 'comentarios'"
             >
               Comentários<span v-if="comments.length" class="ml-1 text-slate-400">{{ comments.length }}</span>
+            </button>
+            <button
+              type="button"
+              class="pb-2.5 -mb-px text-[13px] font-semibold border-b-2 cursor-pointer bg-transparent transition-colors whitespace-nowrap"
+              :class="tab === 'documentos' ? 'text-brand border-brand' : 'text-slate-500 border-transparent hover:text-slate-700'"
+              @click="tab = 'documentos'"
+            >
+              Documentos
             </button>
             <button
               type="button"
@@ -702,6 +710,11 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
               </button>
             </div>
           </div>
+        </div>
+
+        <!-- ABA DOCUMENTOS (arquivos do lead — R2 privado) -->
+        <div v-show="tab === 'documentos'" class="flex-1 min-h-0 overflow-y-auto px-[22px] py-4">
+          <DocumentsPanel v-if="sel" :contact-id="sel.contact.id" :opportunity-id="sel.id" />
         </div>
 
         <!-- ABA HISTÓRICO (log read-only de alterações/movimentações) -->

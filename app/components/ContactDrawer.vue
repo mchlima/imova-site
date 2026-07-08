@@ -133,6 +133,13 @@ const slideT = {
             </NuxtLink>
           </div>
         </div>
+
+        <div class="bg-white border border-slate-200 rounded-[10px] p-[18px]">
+          <div class="text-[11.5px] font-bold uppercase tracking-[0.05em] text-slate-400 mb-3.5">
+            Documentos
+          </div>
+          <DocumentsPanel :contact-id="detail.id" />
+        </div>
       </div>
       <div v-else class="px-[22px] py-10 text-center text-slate-400 text-[14px]">Carregando…</div>
       </aside>
