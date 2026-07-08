@@ -98,9 +98,9 @@ function onOpportunityMoved(opportunity: Opportunity) {
   drawerOpen.value = false
 }
 
-// link para as configurações do pipeline ativo (dono + etapas do funil)
+// link para as configurações do pipeline ativo (dono + etapas), na rota do próprio pipeline
 const settingsLink = computed(() =>
-  activeBoard.value ? `/admin/configuracoes?tab=funnel&board=${activeBoard.value.id}` : '/admin/configuracoes',
+  activeBoard.value ? `/admin/pipelines/${activeBoard.value.key}/configuracoes` : '/admin/pipelines',
 )
 
 // criação manual (NewOpportunityDrawer)

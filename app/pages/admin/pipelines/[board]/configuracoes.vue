@@ -61,18 +61,18 @@ const { users, loadUsers } = useUsers()
 // boards: o editor de funil trabalha um board por vez (padrão = Qualificação)
 const { pipelines, loadPipelines, updatePipeline, defaultPipeline } = usePipelines()
 const funnelBoardId = ref('')
+// o board vem da ROTA (/admin/pipelines/<key>/configuracoes) — configuração é exclusiva dele.
+const boardKey = computed(() => route.params.board as string)
 // board selecionado no editor de funil (define dono + etapas)
 const funnelBoard = computed(() => pipelines.value.find((p) => p.id === funnelBoardId.value) || null)
 // estágios do board selecionado (o funil é por board)
 const funnelStages = computed(() => stages.value.filter((s) => s.pipelineId === funnelBoardId.value))
-// board inicial do editor: ?board=<id> (vindo da página de pipelines) ou o padrão
+// resolve o board da rota (por key); fallback no padrão se a key não existir
 function pickFunnelBoard() {
-  if (funnelBoardId.value && pipelines.value.some((p) => p.id === funnelBoardId.value)) return
-  const wanted = route.query.board as string | undefined
-  funnelBoardId.value =
-    (wanted && pipelines.value.find((p) => p.id === wanted)?.id) || defaultPipeline.value?.id || ''
+  const byKey = pipelines.value.find((p) => p.key === boardKey.value)
+  funnelBoardId.value = byKey?.id || defaultPipeline.value?.id || ''
 }
-watch([pipelines, defaultPipeline], pickFunnelBoard)
+watch([pipelines, defaultPipeline, boardKey], pickFunnelBoard)
 
 // define/remove o dono do board (ownership leve)
 async function setFunnelOwner(uid: string) {
