@@ -583,8 +583,9 @@ async function persistBoard() {
               <tr
                 v-for="l in paged"
                 :key="l.id"
-                class="border-b border-slate-100 cursor-pointer transition-colors hover:bg-slate-50"
+                class="group border-b border-slate-100 cursor-pointer transition-colors hover:bg-slate-50"
                 @click="open(l.id)"
+                @contextmenu.prevent="openCardMenu(l, $event)"
               >
                 <td class="py-[13px] px-4">
                   <div class="text-[14px] font-semibold text-slate-900 truncate">{{ l.contact.name }}</div>
@@ -609,7 +610,20 @@ async function persistBoard() {
                   <span :class="badgeBase" :style="stageBadgeStyle(l.status)">{{ l.status }}</span>
                 </td>
                 <td class="py-[13px] px-4 text-[12.5px] text-slate-400 whitespace-nowrap">
-                  {{ l.date }}
+                  <div class="flex items-center justify-between gap-2">
+                    <span>{{ l.date }}</span>
+                    <button
+                      class="w-6 h-6 inline-flex items-center justify-center rounded-md text-slate-400 opacity-0 group-hover:opacity-100 hover:bg-slate-200/70 hover:text-slate-700 transition-all cursor-pointer border-none bg-transparent shrink-0"
+                      title="Ações rápidas"
+                      @click.stop.prevent="openCardMenu(l, $event)"
+                    >
+                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="5" r="1.6" />
+                        <circle cx="12" cy="12" r="1.6" />
+                        <circle cx="12" cy="19" r="1.6" />
+                      </svg>
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
