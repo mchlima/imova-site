@@ -664,7 +664,7 @@ async function persistBoard() {
             Tentar de novo
           </button>
         </div>
-        <div v-else class="flex gap-4 items-stretch overflow-x-auto pb-2 flex-1 min-h-0">
+        <div v-else class="flex gap-4 items-stretch overflow-x-auto flex-1 min-h-0">
           <div
             v-for="col in boardCols"
             :key="col.status"
