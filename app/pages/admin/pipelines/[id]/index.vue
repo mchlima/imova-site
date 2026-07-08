@@ -489,8 +489,9 @@ async function persistBoard() {
           </div>
         </div>
 
-        <!-- área à direita: toggle lista/kanban + configurar pipeline por último (ícones) -->
-        <div class="ml-auto flex items-center gap-2.5">
+        <!-- área à direita: toggle lista/kanban + configurar pipeline por último (ícones).
+             Sem ml-auto aqui: o ml-auto do botão + já empurra todo o bloco de ações. -->
+        <div class="flex items-center gap-2.5">
           <!-- configurações do pipeline ativo (dono + etapas do funil) — por último -->
           <NuxtLink
             v-if="activeBoard"
