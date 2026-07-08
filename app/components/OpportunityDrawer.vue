@@ -77,28 +77,23 @@ function onContactEdited(contact: Contact) {
   })
 }
 
-// Link do WhatsApp para um número específico do contato.
-function waHref(value: string) {
-  const first = (sel.value?.contact.name || '').split(' ')[0]
-  return (
-    'https://wa.me/55' +
-    value.replace(/\D/g, '') +
-    '?text=' +
-    encodeURIComponent(
-      'Olá ' + first + '! Aqui é do Meu Revelar, sobre a sua simulação. Posso te ajudar?',
-    )
-  )
-}
-
 const badgeBase =
   'inline-flex items-center h-[22px] px-[9px] rounded-md text-[11.5px] font-semibold whitespace-nowrap'
 
-// link de um canal do contato: wa.me (whatsapp/telefone), mailto (email) ou nenhum.
-function channelHref(ch: { type: string; value: string }) {
-  if (ch.type === 'whatsapp' || ch.type === 'telefone') return waHref(ch.value)
-  if (ch.type === 'email') return 'mailto:' + ch.value
-  return ''
+// clicar num dado de contato copia o valor (com feedback "Copiado!" por ~1.5s)
+const copiedVal = ref<string | null>(null)
+let copyTimer: ReturnType<typeof setTimeout> | undefined
+async function copyValue(v: string) {
+  try {
+    await navigator.clipboard.writeText(v)
+  } catch {
+    /* clipboard indisponível — ignora */
+  }
+  copiedVal.value = v
+  clearTimeout(copyTimer)
+  copyTimer = setTimeout(() => (copiedVal.value = null), 1500)
 }
+onBeforeUnmount(() => clearTimeout(copyTimer))
 
 // Atualização otimista + PATCH; emite a oportunidade atualizada para o pai.
 async function patchSel(patch: Partial<Opportunity>) {
@@ -299,36 +294,50 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
         <div class="sticky top-0 z-[2] bg-white border-b border-slate-200">
           <div class="px-[22px] pt-[18px] pb-3 flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <div class="flex items-center gap-2 flex-wrap mb-1.5">
+              <!-- linha 1: nome + editar (lápis) -->
+              <div class="flex items-center gap-1.5 mb-1.5">
                 <h2 class="text-[19px] font-extrabold tracking-[-0.02em] m-0 text-slate-900 truncate">
                   {{ sel.contact.name }}
                 </h2>
+                <button
+                  type="button"
+                  class="w-6 h-6 inline-flex items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-brand cursor-pointer bg-transparent border-none shrink-0"
+                  title="Editar contato"
+                  @click="editContactOpen = true"
+                >
+                  <svg class="w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                  </svg>
+                </button>
+              </div>
+
+              <!-- linha 2: badges (temperatura/status) + avatares -->
+              <div class="flex items-center gap-2 flex-wrap mb-1.5">
                 <span :class="badgeBase" :style="tempBadgeStyle(sel.temperature)">{{ sel.temperature }}</span>
                 <span :class="badgeBase" :style="stageBadgeStyle(sel.status)">{{ stageLabel(sel.status) }}</span>
                 <AvatarStack v-if="sel.assignees?.length" :users="sel.assignees" :size="22" :max="4" />
               </div>
 
-              <!-- contato: canais (clicáveis) + editar — no header, sem repetir o nome -->
+              <!-- linha 3: canais — clicar copia o valor -->
               <div class="flex items-center gap-1.5 flex-wrap">
-                <component
-                  :is="channelHref(ch) ? 'a' : 'span'"
+                <button
                   v-for="ch in sel.contact.channels"
                   :key="ch.id"
-                  :href="channelHref(ch) || undefined"
-                  :target="channelHref(ch) ? '_blank' : undefined"
-                  :title="CHANNEL_LABELS[ch.type] || ch.type"
-                  class="inline-flex items-center gap-1.5 h-[26px] pl-1.5 pr-2.5 rounded-md bg-slate-100 text-slate-700 text-[12px] font-medium max-w-[220px] no-underline"
-                  :class="channelHref(ch) ? 'cursor-pointer transition-colors hover:bg-brand hover:text-white' : ''"
-                >
-                  <AdminIcon :name="CHANNEL_ICONS[ch.type] || 'message'" :size="13" />
-                  <span class="truncate">{{ ch.value }}</span>
-                </component>
-                <button
                   type="button"
-                  class="text-[12px] font-semibold text-brand hover:underline cursor-pointer bg-transparent border-none px-1 py-0"
-                  @click="editContactOpen = true"
+                  :title="'Copiar ' + (CHANNEL_LABELS[ch.type] || ch.type)"
+                  class="inline-flex items-center gap-1.5 h-[26px] pl-1.5 pr-2.5 rounded-md text-[12px] font-medium max-w-[240px] cursor-pointer border-none transition-colors"
+                  :class="copiedVal === ch.value ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+                  @click="copyValue(ch.value)"
                 >
-                  Editar →
+                  <template v-if="copiedVal === ch.value">
+                    <svg class="w-[13px] h-[13px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-11" /></svg>
+                    Copiado!
+                  </template>
+                  <template v-else>
+                    <AdminIcon :name="CHANNEL_ICONS[ch.type] || 'message'" :size="13" />
+                    <span class="truncate">{{ ch.value }}</span>
+                  </template>
                 </button>
               </div>
 

@@ -6,6 +6,11 @@ import { type Opportunity, type RawOpportunity, mapOpportunity, oppCity, oppUf }
 
 const apiBase = useRuntimeConfig().public.apiBase
 
+// boards (pipelines) — para o "Enviar para" do menu de ações no drawer
+const { pipelines, loadPipelines } = usePipelines()
+loadPipelines()
+const orderedBoards = computed(() => [...pipelines.value].sort((a, b) => a.order - b.order))
+
 interface PendingActivity {
   id: string
   type: string
@@ -141,8 +146,9 @@ function onOpportunityUpdated(opportunity: Opportunity) {
   selectedOpportunity.value = opportunity
   load()
 }
-// oportunidade excluída pelo menu de ações: recarrega as pendências
+// oportunidade excluída ou repassada pelo menu de ações: fecha o drawer e recarrega
 function onOpportunityDeleted() {
+  drawerOpen.value = false
   selectedOpportunity.value = null
   load()
 }
@@ -306,7 +312,9 @@ const th = 'py-3 px-3 text-left text-[11px] font-bold uppercase tracking-[0.04em
     <OpportunityDrawer
       v-model="drawerOpen"
       :opportunity="selectedOpportunity"
+      :boards="orderedBoards"
       @updated="onOpportunityUpdated"
+      @moved="onOpportunityDeleted"
       @deleted="onOpportunityDeleted"
     />
     <ActivityCompleteModal v-model="completeOpen" :activity="toComplete" @confirm="confirmComplete" />
