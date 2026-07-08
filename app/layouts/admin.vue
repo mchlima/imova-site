@@ -25,11 +25,12 @@ const nav: NavItem[] = [
     to: '/admin/crm',
     icon: 'opportunities',
     children: [
-      // Pipelines: as configurações de cada pipeline (dono + funil) são acessadas pelo
-      // botão ⚙ na própria página do pipeline — por isso não há mais item "Configurações".
+      // Pipelines: dono + funil de cada pipeline são configurados pelo ⚙ na página do
+      // pipeline. "Configurações" aqui é global do CRM (campos personalizados).
       { label: 'Pipelines', to: '/admin/pipelines', icon: 'opportunities', boards: true },
       { label: 'Contatos', to: '/admin/contatos', icon: 'contacts' },
       { label: 'Follow-up', to: '/admin/follow-up', icon: 'followup' },
+      { label: 'Configurações', to: '/admin/configuracoes', icon: 'settings' },
     ],
   },
   {
@@ -47,6 +48,28 @@ const nav: NavItem[] = [
 
 const isActive = (to: string) => route.path === to || route.path.startsWith(to + '/')
 const groupActive = (item: NavItem) => !!item.children?.some((c) => c.to && isActive(c.to))
+
+// menu recolhível/expansível — padrão recolhido; o grupo (e o sub-grupo Pipelines) da
+// rota atual abre sozinho. Só adiciona (não recolhe) para não atrapalhar quem já abriu.
+const expanded = ref(new Set<string>())
+const isExpanded = (id: string) => expanded.value.has(id)
+function toggle(id: string) {
+  const s = new Set(expanded.value)
+  if (s.has(id)) s.delete(id)
+  else s.add(id)
+  expanded.value = s
+}
+function syncExpanded() {
+  const s = new Set(expanded.value)
+  for (const item of nav) if (item.children && groupActive(item)) s.add(item.label)
+  if (route.path.startsWith('/admin/pipelines')) {
+    s.add('CRM')
+    s.add('pipelines')
+  }
+  expanded.value = s
+}
+syncExpanded()
+watch(() => route.path, syncExpanded)
 
 const initials = computed(() =>
   (user.value?.name || '?')
@@ -99,57 +122,86 @@ async function signOut() {
 
       <nav class="flex-1 p-3 flex flex-col gap-1 overflow-y-auto">
         <template v-for="item in nav" :key="item.label">
-          <!-- group with a clickable header (context dashboard) + subitems -->
+          <!-- grupo: cabeçalho navega + chevron recolhe/expande (padrão recolhido) -->
           <div v-if="item.children" class="mt-2">
-            <NuxtLink
-              :to="item.to!"
-              class="flex items-center gap-3 h-[34px] px-3 rounded-lg text-[11px] font-bold uppercase tracking-[0.06em] no-underline transition-all"
-              :class="
-                isActive(item.to!)
-                  ? 'bg-brand-soft text-brand'
-                  : groupActive(item)
-                    ? 'text-brand hover:bg-slate-100'
-                    : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
-              "
-            >
-              <AdminIcon :name="item.icon" :size="15" />
-              {{ item.label }}
-            </NuxtLink>
-            <div class="mt-1 flex flex-col gap-1 pl-2 ml-3 border-l border-slate-100">
+            <div class="flex items-center gap-1">
+              <NuxtLink
+                :to="item.to!"
+                class="flex-1 flex items-center gap-3 h-[34px] px-3 rounded-lg text-[11px] font-bold uppercase tracking-[0.06em] no-underline transition-all"
+                :class="
+                  isActive(item.to!)
+                    ? 'bg-brand-soft text-brand'
+                    : groupActive(item)
+                      ? 'text-brand hover:bg-slate-100'
+                      : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                "
+              >
+                <AdminIcon :name="item.icon" :size="15" />
+                {{ item.label }}
+              </NuxtLink>
+              <button
+                type="button"
+                class="inline-flex items-center justify-center w-7 h-[34px] rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer bg-transparent border-none shrink-0"
+                :aria-label="isExpanded(item.label) ? 'Recolher' : 'Expandir'"
+                @click="toggle(item.label)"
+              >
+                <svg class="w-3.5 h-3.5 transition-transform" :class="isExpanded(item.label) ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
+              </button>
+            </div>
+
+            <div v-if="isExpanded(item.label)" class="mt-1 flex flex-col gap-1 pl-2 ml-3 border-l border-slate-100">
               <template v-for="child in item.children" :key="child.to">
+                <!-- sub-grupo Pipelines: cabeçalho navega + chevron -->
+                <template v-if="child.boards">
+                  <div class="flex items-center gap-1">
+                    <NuxtLink
+                      :to="child.to!"
+                      class="flex-1 flex items-center gap-2.5 h-[36px] px-3 rounded-lg text-[13.5px] font-medium no-underline transition-all"
+                      :class="isActive(child.to!) ? 'bg-brand-soft text-brand' : 'text-slate-600 hover:bg-slate-100'"
+                    >
+                      <AdminIcon :name="child.icon" :size="16" />
+                      {{ child.label }}
+                    </NuxtLink>
+                    <button
+                      type="button"
+                      class="inline-flex items-center justify-center w-7 h-[36px] rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer bg-transparent border-none shrink-0"
+                      :aria-label="isExpanded('pipelines') ? 'Recolher' : 'Expandir'"
+                      @click="toggle('pipelines')"
+                    >
+                      <svg class="w-3.5 h-3.5 transition-transform" :class="isExpanded('pipelines') ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
+                    </button>
+                  </div>
+                  <div
+                    v-if="isExpanded('pipelines') && boardLinks.length"
+                    class="flex flex-col gap-0.5 pl-3 ml-3 border-l border-slate-100"
+                  >
+                    <NuxtLink
+                      v-for="b in boardLinks"
+                      :key="b.key"
+                      :to="`/admin/pipelines/${b.key}`"
+                      class="flex items-center gap-2 h-[32px] px-3 rounded-lg text-[13px] font-medium no-underline transition-all"
+                      :class="
+                        boardActive(b.key)
+                          ? 'bg-brand-soft text-brand'
+                          : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                      "
+                    >
+                      <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60 shrink-0"></span>
+                      {{ b.label }}
+                    </NuxtLink>
+                  </div>
+                </template>
+
+                <!-- item comum -->
                 <NuxtLink
+                  v-else
                   :to="child.to!"
                   class="flex items-center gap-2.5 h-[36px] px-3 rounded-lg text-[13.5px] font-medium no-underline transition-all"
-                  :class="
-                    isActive(child.to!)
-                      ? 'bg-brand-soft text-brand'
-                      : 'text-slate-600 hover:bg-slate-100'
-                  "
+                  :class="isActive(child.to!) ? 'bg-brand-soft text-brand' : 'text-slate-600 hover:bg-slate-100'"
                 >
                   <AdminIcon :name="child.icon" :size="16" />
                   {{ child.label }}
                 </NuxtLink>
-
-                <!-- boards (pipelines) como sub-sub-itens dinâmicos -->
-                <div
-                  v-if="child.boards && boardLinks.length"
-                  class="flex flex-col gap-0.5 pl-3 ml-3 border-l border-slate-100"
-                >
-                  <NuxtLink
-                    v-for="b in boardLinks"
-                    :key="b.key"
-                    :to="`/admin/pipelines/${b.key}`"
-                    class="flex items-center gap-2 h-[32px] px-3 rounded-lg text-[13px] font-medium no-underline transition-all"
-                    :class="
-                      boardActive(b.key)
-                        ? 'bg-brand-soft text-brand'
-                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
-                    "
-                  >
-                    <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60 shrink-0"></span>
-                    {{ b.label }}
-                  </NuxtLink>
-                </div>
               </template>
             </div>
           </div>
