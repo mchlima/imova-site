@@ -18,11 +18,10 @@ const route = useRoute()
 // tem seus estágios: filtramos por board ativo (kanbanStagesFor / stagesFor).
 const { loadStages, kanbanStagesFor, stagesFor, stageBadgeStyle } = useStages()
 
-// boards (pipelines) — abas do quadro. Ownership leve: abre no board do usuário,
-// mas ninguém fica bloqueado de navegar nos outros.
+// pipelines — a navegação entre eles é pelo menu (CRM › Pipelines). Ownership leve:
+// abre no pipeline do usuário (dono), mas ninguém fica bloqueado de ver os outros.
 const { pipelines, loadPipelines } = usePipelines()
 const { user } = useAuth()
-const { users, loadUsers } = useUsers()
 
 const activePipelineId = ref<string>('')
 const orderedBoards = computed(() => [...pipelines.value].sort((a, b) => a.order - b.order))
@@ -99,9 +98,7 @@ function onOpportunityMoved(opportunity: Opportunity) {
   drawerOpen.value = false
 }
 
-// nome do dono do board (badge nas abas). Definir o dono é feito nas configurações do board.
-const ownerName = (uid: string | null) => users.value.find((u) => u.id === uid)?.name || ''
-// link para as configurações do board ativo (dono + etapas do funil)
+// link para as configurações do pipeline ativo (dono + etapas do funil)
 const settingsLink = computed(() =>
   activeBoard.value ? `/admin/configuracoes?tab=funnel&board=${activeBoard.value.id}` : '/admin/configuracoes',
 )
@@ -151,7 +148,6 @@ watch(fUf, (uf) => {
 onMounted(async () => {
   loadStates()
   loadStages()
-  loadUsers()
   await loadPipelines()
   pickInitialBoard()
   await loadOpportunities()
@@ -326,45 +322,7 @@ async function persistBoard() {
         subtitle="Cada pipeline é um funil. Qualifique na Qualificação e repasse para a Corretagem."
       />
 
-      <!-- SELETOR DE PIPELINES (abas) + configurar pipeline -->
-      <div v-if="orderedBoards.length" class="flex items-center gap-3 flex-wrap mb-[18px]">
-        <div class="inline-flex items-center bg-slate-100 rounded-[10px] p-0.5">
-          <button
-            v-for="b in orderedBoards"
-            :key="b.id"
-            type="button"
-            class="inline-flex items-center gap-1.5 h-[34px] px-3.5 rounded-[8px] text-[13px] font-semibold transition-all cursor-pointer border-none"
-            :class="
-              activePipelineId === b.id
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'bg-transparent text-slate-500 hover:text-slate-700'
-            "
-            @click="activePipelineId = b.id"
-          >
-            {{ b.label }}
-            <span
-              v-if="b.ownerUserId"
-              class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-brand-soft text-brand text-[10.5px] font-bold"
-              :title="'Pipeline de ' + ownerName(b.ownerUserId)"
-              >{{ (ownerName(b.ownerUserId) || '?').charAt(0).toUpperCase() }}</span
-            >
-          </button>
-        </div>
-
-        <!-- configurações do pipeline ativo (dono + etapas do funil) -->
-        <NuxtLink
-          v-if="activeBoard"
-          :to="settingsLink"
-          class="inline-flex items-center gap-1.5 h-[34px] px-3 bg-white border border-slate-200 text-slate-600 text-[13px] font-semibold rounded-[8px] no-underline transition-all hover:bg-slate-50 hover:text-slate-800"
-          :title="'Configurar dono e etapas de ' + activeBoard.label"
-        >
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-          </svg>
-          Configurar pipeline
-        </NuxtLink>
-      </div>
+      <!-- Navegação entre pipelines fica no menu (CRM › Pipelines › …). -->
 
       <!-- BARRA: busca + data (fora) + botão de filtros (painel) -->
       <div class="flex gap-2.5 items-center flex-wrap mb-[18px]">
@@ -379,7 +337,7 @@ async function persistBoard() {
             class="w-full h-[38px] pl-8 pr-3 text-[13.5px] text-slate-900 border border-slate-300 rounded-[7px] outline-none transition-all focus:border-brand focus:ring-[3px] focus:ring-brand/10"
           />
         </div>
-        <DateRangePicker v-model="fRange" />
+        <DateRangePicker v-model="fRange" icon-only />
 
         <button
           class="inline-flex items-center gap-1.5 h-[38px] px-3.5 bg-brand text-white text-[13px] font-semibold rounded-[7px] cursor-pointer border-none hover:bg-brand-dark shrink-0"
@@ -388,15 +346,16 @@ async function persistBoard() {
           <span class="text-[15px] leading-none">+</span> Nova oportunidade
         </button>
 
-        <!-- FILTROS (botão + painel suspenso) -->
+        <!-- FILTROS (só ícone + painel suspenso) -->
         <div class="relative">
           <button
-            class="inline-flex items-center gap-2 h-[38px] px-3.5 bg-white border rounded-[7px] text-[13px] font-semibold cursor-pointer transition-all"
+            class="relative inline-flex items-center justify-center w-[38px] h-[38px] bg-white border rounded-[7px] cursor-pointer transition-all"
             :class="
               activeFilters > 0
                 ? 'border-brand/40 text-brand hover:bg-brand-soft'
                 : 'border-slate-200 text-slate-700 hover:bg-slate-50'
             "
+            title="Filtros"
             @click="filtersOpen = !filtersOpen"
           >
             <svg
@@ -410,13 +369,11 @@ async function persistBoard() {
             >
               <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
             </svg>
-            Filtros
             <span
               v-if="activeFilters > 0"
-              class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-brand text-white text-[11px] font-bold"
+              class="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-brand text-white text-[11px] font-bold"
               >{{ activeFilters }}</span
             >
-            <span v-else class="text-[12px] font-medium text-slate-400">· limpo</span>
           </button>
 
           <!-- overlay para fechar ao clicar fora -->
@@ -527,61 +484,76 @@ async function persistBoard() {
           </div>
         </div>
 
-        <!-- toggle: lista / kanban -->
-        <div class="ml-auto inline-flex items-center bg-slate-100 rounded-[9px] p-0.5">
-          <button
-            type="button"
-            class="inline-flex items-center gap-1.5 h-[34px] px-3 rounded-[7px] text-[13px] font-semibold transition-all cursor-pointer border-none"
-            :class="
-              view === 'list'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'bg-transparent text-slate-500 hover:text-slate-700'
-            "
-            @click="view = 'list'"
+        <!-- área à direita: configurar pipeline (ícone) + toggle lista/kanban (ícones) -->
+        <div class="ml-auto flex items-center gap-2.5">
+          <!-- configurações do pipeline ativo (dono + etapas do funil) -->
+          <NuxtLink
+            v-if="activeBoard"
+            :to="settingsLink"
+            class="inline-flex items-center justify-center w-[38px] h-[38px] bg-white border border-slate-200 text-slate-600 rounded-[7px] no-underline transition-all hover:bg-slate-50 hover:text-slate-800"
+            :title="'Configurar ' + activeBoard.label + ' (dono e etapas)'"
           >
-            <svg
-              class="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <line x1="8" y1="6" x2="21" y2="6" />
-              <line x1="8" y1="12" x2="21" y2="12" />
-              <line x1="8" y1="18" x2="21" y2="18" />
-              <line x1="3" y1="6" x2="3.01" y2="6" />
-              <line x1="3" y1="12" x2="3.01" y2="12" />
-              <line x1="3" y1="18" x2="3.01" y2="18" />
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
-            Lista
-          </button>
-          <button
-            type="button"
-            class="inline-flex items-center gap-1.5 h-[34px] px-3 rounded-[7px] text-[13px] font-semibold transition-all cursor-pointer border-none"
-            :class="
-              view === 'kanban'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'bg-transparent text-slate-500 hover:text-slate-700'
-            "
-            @click="view = 'kanban'"
-          >
-            <svg
-              class="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+          </NuxtLink>
+
+          <div class="inline-flex items-center bg-slate-100 rounded-[9px] p-0.5">
+            <button
+              type="button"
+              class="inline-flex items-center justify-center w-[34px] h-[34px] rounded-[7px] transition-all cursor-pointer border-none"
+              :class="
+                view === 'list'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'bg-transparent text-slate-500 hover:text-slate-700'
+              "
+              title="Lista"
+              @click="view = 'list'"
             >
-              <rect x="3" y="3" width="6" height="18" rx="1" />
-              <rect x="10" y="3" width="6" height="12" rx="1" />
-              <rect x="17" y="3" width="6" height="9" rx="1" />
-            </svg>
-            Kanban
-          </button>
+              <svg
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="8" y1="6" x2="21" y2="6" />
+                <line x1="8" y1="12" x2="21" y2="12" />
+                <line x1="8" y1="18" x2="21" y2="18" />
+                <line x1="3" y1="6" x2="3.01" y2="6" />
+                <line x1="3" y1="12" x2="3.01" y2="12" />
+                <line x1="3" y1="18" x2="3.01" y2="18" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center justify-center w-[34px] h-[34px] rounded-[7px] transition-all cursor-pointer border-none"
+              :class="
+                view === 'kanban'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'bg-transparent text-slate-500 hover:text-slate-700'
+              "
+              title="Kanban"
+              @click="view = 'kanban'"
+            >
+              <svg
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="3" y="3" width="6" height="18" rx="1" />
+                <rect x="10" y="3" width="6" height="12" rx="1" />
+                <rect x="17" y="3" width="6" height="9" rx="1" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 

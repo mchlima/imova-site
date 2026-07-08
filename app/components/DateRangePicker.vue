@@ -7,8 +7,9 @@ export interface DateRange {
 }
 
 const model = defineModel<DateRange>({ default: () => ({ start: '', end: '' }) })
-const props = withDefaults(defineProps<{ placeholder?: string }>(), {
+const props = withDefaults(defineProps<{ placeholder?: string; iconOnly?: boolean }>(), {
   placeholder: 'Período',
+  iconOnly: false,
 })
 
 const open = ref(false)
@@ -84,12 +85,14 @@ const dateInput =
   <div class="relative">
     <button
       type="button"
-      class="inline-flex items-center gap-2 h-[38px] px-3.5 bg-white border rounded-[7px] text-[13px] font-semibold cursor-pointer transition-all"
-      :class="
+      class="relative inline-flex items-center gap-2 h-[38px] bg-white border rounded-[7px] text-[13px] font-semibold cursor-pointer transition-all"
+      :class="[
         hasRange
           ? 'border-brand/40 text-brand hover:bg-brand-soft'
-          : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-      "
+          : 'border-slate-200 text-slate-700 hover:bg-slate-50',
+        iconOnly ? 'w-[38px] justify-center px-0' : 'px-3.5',
+      ]"
+      :title="iconOnly ? label : undefined"
       @click="open = !open"
     >
       <svg
@@ -106,7 +109,11 @@ const dateInput =
         <line x1="8" y1="2" x2="8" y2="6" />
         <line x1="3" y1="10" x2="21" y2="10" />
       </svg>
-      {{ label }}
+      <template v-if="!iconOnly">{{ label }}</template>
+      <span
+        v-if="iconOnly && hasRange"
+        class="absolute top-[5px] right-[5px] w-1.5 h-1.5 rounded-full bg-brand"
+      ></span>
     </button>
 
     <!-- overlay para fechar ao clicar fora -->
