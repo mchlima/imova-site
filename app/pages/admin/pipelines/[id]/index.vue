@@ -329,7 +329,7 @@ async function persistBoard() {
 
       <!-- BARRA: busca + data (fora) + botão de filtros (painel) -->
       <div class="flex gap-2.5 items-center flex-wrap mb-[18px]">
-        <div class="relative flex-1 min-w-[200px]">
+        <div class="relative flex-1 min-w-[180px] max-w-[380px]">
           <span
             class="absolute left-[11px] top-1/2 -translate-y-1/2 text-slate-400 text-[13px]"
             >⌕</span
@@ -340,11 +340,13 @@ async function persistBoard() {
             class="w-full h-[38px] pl-8 pr-3 text-[13.5px] text-slate-900 border border-slate-300 rounded-[7px] outline-none transition-all focus:border-brand focus:ring-[3px] focus:ring-brand/10"
           />
         </div>
+        <!-- ml-auto empurra o + e todas as ações seguintes para a direita -->
         <button
-          class="inline-flex items-center gap-1.5 h-[38px] px-3.5 bg-brand text-white text-[13px] font-semibold rounded-[7px] cursor-pointer border-none hover:bg-brand-dark shrink-0"
+          class="ml-auto inline-flex items-center justify-center w-[38px] h-[38px] bg-brand text-white rounded-[7px] cursor-pointer border-none hover:bg-brand-dark shrink-0"
+          title="Nova oportunidade"
           @click="openNewOpp()"
         >
-          <span class="text-[15px] leading-none">+</span> Nova oportunidade
+          <span class="text-[18px] leading-none">+</span>
         </button>
 
         <DateRangePicker v-model="fRange" icon-only />
