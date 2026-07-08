@@ -518,12 +518,7 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
               ></textarea>
 
               <div class="flex flex-wrap items-center gap-2">
-                <div v-if="!isNota" class="flex flex-col gap-1">
-                  <input v-model="naDue" type="datetime-local" :class="drawerInput" class="!w-auto" />
-                  <span v-if="naIsFuture" class="text-[11px] text-brand">
-                    No futuro → agenda um follow-up
-                  </span>
-                </div>
+                <input v-if="!isNota" v-model="naDue" type="datetime-local" :class="drawerInput" class="!w-auto" />
                 <div class="flex gap-2 ml-auto">
                   <button
                     class="h-9 px-3.5 text-[13px] font-semibold rounded-[7px] cursor-pointer border-none disabled:opacity-50"
