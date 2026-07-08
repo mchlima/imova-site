@@ -123,6 +123,23 @@ async function patchSel(patch: Partial<Opportunity>) {
   }
 }
 
+// Recarrega a oportunidade do servidor (atividades + histórico atualizados) e
+// emite para o pai. Usado ao abrir o drawer: mudanças feitas fora dele (drag no
+// kanban, menu do card) atualizam o objeto local sem os eventos novos.
+async function refreshSel() {
+  const id = sel.value?.id
+  if (!id) return
+  try {
+    const fresh = await $fetch<RawOpportunity>(`/opportunities/${id}`, {
+      baseURL: apiBase,
+      credentials: 'include',
+    })
+    emit('updated', mapOpportunity(fresh))
+  } catch {
+    /* mantém o que já tem */
+  }
+}
+
 // valor de um campo personalizado (aninhado por seção)
 function fieldValue(sectionKey: string, fieldKey: string) {
   const fields = sel.value?.fields as Record<string, Record<string, unknown>> | undefined
@@ -274,6 +291,7 @@ watch(open, (v) => {
     naDue.value = nowLocal()
     tab.value = 'atividades'
     scrollTimeline()
+    refreshSel() // pega atividades/histórico atualizados por ações fora do drawer
   }
 })
 // ao entrar na aba Atividades, rola pro fim (mais recente)
