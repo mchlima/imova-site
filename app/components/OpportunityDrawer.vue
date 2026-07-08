@@ -157,6 +157,31 @@ const ACTIVITY_TYPES = [
 ]
 const activityLabel = (t: string) => ACTIVITY_TYPES.find((x) => x.value === t)?.label || t
 
+// ícone por tipo de atividade (nós da linha do tempo)
+const ACT_ICONS: Record<string, string> = {
+  nota: '<path d="M4 5a2 2 0 0 1 2-2h8l6 6v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h5"/>',
+  ligação:
+    '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8 9.6a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6A2 2 0 0 1 22 16.9z"/>',
+  whatsapp: '<path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.5L3 21l2-5.5A8.5 8.5 0 1 1 21 11.5z"/>',
+  email: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+  reunião:
+    '<path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="8" r="3.5"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/>',
+  visita: '<path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+  tarefa: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="m8 12 3 3 5-6"/>',
+}
+const ActIcon = (props: { type: string; size?: number }) =>
+  h('svg', {
+    width: props.size || 14,
+    height: props.size || 14,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    'stroke-width': 1.8,
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
+    innerHTML: ACT_ICONS[props.type] || '<circle cx="12" cy="12" r="9"/>',
+  })
+
 // valor inicial do campo datetime-local = agora (formato YYYY-MM-DDTHH:mm)
 function nowLocal() {
   const d = new Date()
@@ -450,7 +475,7 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
         <div v-show="tab === 'atividades'" class="flex-1 min-h-0 flex flex-col">
           <!-- timeline: mais antiga no topo, mais recente colada no form -->
           <div ref="timelineEl" class="flex-1 min-h-0 overflow-y-auto px-[22px] py-4">
-            <div class="flex flex-col gap-2 min-h-full justify-end">
+            <div class="flex flex-col min-h-full justify-end">
               <div
                 v-if="!timeline.length"
                 class="text-[12.5px] text-slate-400 text-center py-8"
@@ -459,39 +484,47 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
               </div>
 
               <div
-                v-for="a in timeline"
+                v-for="(a, i) in timeline"
                 :key="a.id"
-                class="group/act flex items-start gap-2.5"
-                :class="!a.done ? 'border border-slate-200 rounded-lg px-3 py-2.5 bg-white' : 'px-1 py-1.5'"
+                class="group/act relative flex gap-3"
               >
-                <!-- ícone / concluir -->
-                <button
-                  v-if="!a.done"
-                  title="Concluir"
-                  class="mt-0.5 w-[18px] h-[18px] rounded-full border-2 border-slate-300 hover:border-brand cursor-pointer bg-white shrink-0"
-                  @click="askComplete(a)"
-                ></button>
-                <span
-                  v-else-if="a.type === 'nota'"
-                  class="mt-0.5 w-[18px] h-[18px] rounded-full bg-slate-100 text-slate-400 shrink-0 flex items-center justify-center"
-                  title="Nota"
-                >
-                  <AdminIcon name="draft" :size="11" />
-                </span>
-                <span
-                  v-else
-                  class="mt-0.5 w-[18px] h-[18px] rounded-full bg-brand text-white text-[11px] flex items-center justify-center shrink-0"
-                  >✓</span
-                >
+                <!-- trilho: nó (ícone do tipo) + linha conectora -->
+                <div class="flex flex-col items-center shrink-0">
+                  <button
+                    v-if="!a.done"
+                    title="Concluir"
+                    class="w-7 h-7 rounded-full flex items-center justify-center bg-white border-2 border-brand/30 text-brand hover:bg-brand hover:text-white cursor-pointer transition-colors shrink-0"
+                    @click="askComplete(a)"
+                  >
+                    <ActIcon :type="a.type" :size="13" />
+                  </button>
+                  <div
+                    v-else
+                    class="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                    :class="a.type === 'nota' ? 'bg-slate-100 text-slate-400' : 'bg-emerald-50 text-emerald-600'"
+                  >
+                    <ActIcon :type="a.type" :size="13" />
+                  </div>
+                  <div v-if="i < timeline.length - 1" class="w-px flex-1 bg-slate-200 mt-1.5 min-h-[10px]"></div>
+                </div>
 
-                <div class="flex-1 min-w-0">
-                  <span class="inline-flex items-center text-[11px] font-semibold text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">{{ activityLabel(a.type) }}</span>
-                  <div class="text-[13px] text-slate-800 mt-1" :class="{ 'font-semibold': !a.done }">{{ a.title }}</div>
-                  <div v-if="a.notes" class="text-[12px] text-slate-500 mt-0.5 leading-[1.5]">{{ a.notes }}</div>
-                  <!-- pendente: prazo; concluída: autor · quando -->
+                <!-- conteúdo: tipo → título → observação → prazo/autor -->
+                <div class="flex-1 min-w-0 pb-4">
+                  <div class="flex items-start justify-between gap-2">
+                    <span class="text-[11px] font-semibold uppercase tracking-[0.04em] text-slate-400">{{ activityLabel(a.type) }}</span>
+                    <button
+                      title="Excluir"
+                      class="-mt-0.5 text-slate-300 hover:text-red-600 cursor-pointer bg-transparent border-none text-[14px] leading-none shrink-0 opacity-0 group-hover/act:opacity-100 transition-opacity"
+                      @click="deleteActivity(a.id)"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div class="text-[13px] text-slate-800 mt-0.5" :class="{ 'font-semibold': !a.done }">{{ a.title }}</div>
+                  <div v-if="a.notes" class="text-[12px] text-slate-500 mt-1 leading-[1.5] whitespace-pre-line">{{ a.notes }}</div>
                   <span
                     v-if="!a.done && a.dueAt"
-                    class="inline-flex items-center mt-1 h-[20px] px-1.5 rounded text-[11px] font-semibold"
+                    class="inline-flex items-center mt-1.5 h-[20px] px-1.5 rounded text-[11px] font-semibold"
                     :class="
                       dueState(a.dueAt) === 'overdue'
                         ? 'bg-red-50 text-red-700'
@@ -501,18 +534,10 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
                     "
                     >{{ dueState(a.dueAt) === 'overdue' ? 'Atrasada · ' : '' }}{{ fmtDateTime(a.dueAt) }}</span
                   >
-                  <div v-else-if="a.done" class="text-[11px] text-slate-400 mt-0.5">
+                  <div v-else-if="a.done" class="text-[11px] text-slate-400 mt-1">
                     {{ a.author }} · {{ fmtDateTime(a.doneAt || a.createdAt) }}
                   </div>
                 </div>
-
-                <button
-                  title="Excluir"
-                  class="text-slate-300 hover:text-red-600 cursor-pointer bg-transparent border-none text-[15px] leading-none shrink-0 opacity-0 group-hover/act:opacity-100 transition-opacity"
-                  @click="deleteActivity(a.id)"
-                >
-                  ✕
-                </button>
               </div>
             </div>
           </div>
