@@ -173,26 +173,30 @@ watch(open, (v) => {
   if (v) {
     naDue.value = nowLocal()
     tab.value = 'atividades'
+    scrollTimeline()
   }
 })
+// ao entrar na aba Atividades, rola pro fim (mais recente)
+watch(tab, (t) => {
+  if (t === 'atividades') scrollTimeline()
+})
 
-const pendingActivities = computed(() =>
-  (sel.value?.activities ?? [])
-    .filter((a) => !a.done)
-    .sort((a, b) => {
-      if (!a.dueAt) return 1
-      if (!b.dueAt) return -1
-      return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime()
-    }),
-)
-const doneActivities = computed(() =>
-  (sel.value?.activities ?? [])
-    .filter((a) => a.done)
-    .sort(
-      (a, b) =>
-        new Date(b.doneAt || b.createdAt).getTime() - new Date(a.doneAt || a.createdAt).getTime(),
-    ),
-)
+// timeline única, cronológica (mais antiga no topo; a mais recente fica colada no form embaixo).
+// tempo efetivo: concluída → doneAt; agendada/registrada → dueAt; senão createdAt.
+const timeline = computed(() => {
+  const t = (a: Activity) =>
+    new Date(a.done ? a.doneAt || a.createdAt : a.dueAt || a.createdAt).getTime()
+  return [...(sel.value?.activities ?? [])].sort((a, b) => t(a) - t(b))
+})
+
+// rola a lista pro fim (mensagem mais recente) — comportamento de chat
+const timelineEl = ref<HTMLElement | null>(null)
+function scrollTimeline() {
+  nextTick(() => {
+    const el = timelineEl.value
+    if (el) el.scrollTop = el.scrollHeight
+  })
+}
 
 async function saveActivity() {
   const id = sel.value?.id
@@ -222,6 +226,7 @@ async function saveActivity() {
     naTitle.value = ''
     naNotes.value = ''
     naDue.value = nowLocal()
+    scrollTimeline()
   } finally {
     savingActivity.value = false
   }
@@ -244,6 +249,7 @@ async function confirmComplete(patch: { type: string; title: string; notes: stri
     body: { done: true, ...patch },
   })
   emit('updated', mapOpportunity(updated))
+  scrollTimeline()
 }
 async function deleteActivity(actId: string) {
   const id = sel.value?.id
@@ -288,10 +294,10 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
     <Transition v-bind="slideT">
       <aside
         v-if="open && sel"
-        class="fixed top-0 right-0 z-[41] w-[520px] max-w-[94vw] h-screen bg-slate-50 shadow-[-12px_0_40px_-12px_rgba(15,23,42,0.3)] overflow-y-auto"
+        class="fixed top-0 right-0 z-[41] w-[520px] max-w-[94vw] h-screen bg-slate-50 shadow-[-12px_0_40px_-12px_rgba(15,23,42,0.3)] flex flex-col overflow-hidden"
       >
         <!-- drawer header (fixo): nome + temperatura + status sempre visíveis -->
-        <div class="sticky top-0 z-[2] bg-white border-b border-slate-200">
+        <div class="shrink-0 bg-white border-b border-slate-200">
           <div class="px-[22px] pt-[18px] pb-3 flex items-start justify-between gap-3">
             <div class="min-w-0">
               <!-- linha 1: nome + editar (lápis) -->
@@ -388,7 +394,7 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
         </div>
 
         <!-- ABA DADOS (campos personalizados por seção) -->
-        <div v-show="tab === 'dados'" class="px-[22px] pt-5 pb-10 flex flex-col gap-[18px]">
+        <div v-show="tab === 'dados'" class="flex-1 min-h-0 overflow-y-auto px-[22px] pt-5 pb-10 flex flex-col gap-[18px]">
           <div
             v-for="section in fieldSections"
             :key="section.id"
@@ -411,13 +417,82 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
           </div>
         </div>
 
-        <!-- ABA ATIVIDADES -->
-        <div v-show="tab === 'atividades'" class="px-[22px] pt-5 pb-10 flex flex-col gap-[18px]">
-          <!-- atividades e histórico (timeline unificada: notas + interações + follow-ups) -->
-          <div class="bg-white border border-slate-200 rounded-[10px] p-[18px]">
-            <div :class="blockLabel">Atividades e histórico</div>
+        <!-- ABA ATIVIDADES (chat: lista rola acima, form fixo embaixo) -->
+        <div v-show="tab === 'atividades'" class="flex-1 min-h-0 flex flex-col">
+          <!-- timeline: mais antiga no topo, mais recente colada no form -->
+          <div ref="timelineEl" class="flex-1 min-h-0 overflow-y-auto px-[22px] py-4">
+            <div class="flex flex-col gap-2 min-h-full justify-end">
+              <div
+                v-if="!timeline.length"
+                class="text-[12.5px] text-slate-400 text-center py-8"
+              >
+                Nada por aqui ainda. Escreva uma nota, registre um contato ou agende um follow-up.
+              </div>
 
-            <div class="border border-slate-200 rounded-lg p-3 mb-3.5 flex flex-col gap-2.5 bg-slate-50/50">
+              <div
+                v-for="a in timeline"
+                :key="a.id"
+                class="group/act flex items-start gap-2.5"
+                :class="!a.done ? 'border border-slate-200 rounded-lg px-3 py-2.5 bg-white' : 'px-1 py-1.5'"
+              >
+                <!-- ícone / concluir -->
+                <button
+                  v-if="!a.done"
+                  title="Concluir"
+                  class="mt-0.5 w-[18px] h-[18px] rounded-full border-2 border-slate-300 hover:border-brand cursor-pointer bg-white shrink-0"
+                  @click="askComplete(a)"
+                ></button>
+                <span
+                  v-else-if="a.type === 'nota'"
+                  class="mt-0.5 w-[18px] h-[18px] rounded-full bg-slate-100 text-slate-400 shrink-0 flex items-center justify-center"
+                  title="Nota"
+                >
+                  <AdminIcon name="draft" :size="11" />
+                </span>
+                <span
+                  v-else
+                  class="mt-0.5 w-[18px] h-[18px] rounded-full bg-brand text-white text-[11px] flex items-center justify-center shrink-0"
+                  >✓</span
+                >
+
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-[11px] font-semibold text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">{{ activityLabel(a.type) }}</span>
+                    <span class="text-[13px] text-slate-800" :class="{ 'font-semibold': !a.done }">{{ a.title }}</span>
+                  </div>
+                  <div v-if="a.notes" class="text-[12px] text-slate-500 mt-0.5 leading-[1.5]">{{ a.notes }}</div>
+                  <!-- pendente: prazo; concluída: autor · quando -->
+                  <span
+                    v-if="!a.done && a.dueAt"
+                    class="inline-flex items-center mt-1 h-[20px] px-1.5 rounded text-[11px] font-semibold"
+                    :class="
+                      dueState(a.dueAt) === 'overdue'
+                        ? 'bg-red-50 text-red-700'
+                        : dueState(a.dueAt) === 'today'
+                          ? 'bg-[#FEF6E7] text-amber-700'
+                          : 'bg-brand-soft text-brand'
+                    "
+                    >{{ dueState(a.dueAt) === 'overdue' ? 'Atrasada · ' : '' }}{{ fmtDateTime(a.dueAt) }}</span
+                  >
+                  <div v-else-if="a.done" class="text-[11px] text-slate-400 mt-0.5">
+                    {{ a.author }} · {{ fmtDateTime(a.doneAt || a.createdAt) }}
+                  </div>
+                </div>
+
+                <button
+                  title="Excluir"
+                  class="text-slate-300 hover:text-red-600 cursor-pointer bg-transparent border-none text-[15px] leading-none shrink-0 opacity-0 group-hover/act:opacity-100 transition-opacity"
+                  @click="deleteActivity(a.id)"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- COMPOSER fixo embaixo -->
+          <div class="shrink-0 border-t border-slate-200 bg-white px-[22px] py-3">
+            <div class="flex flex-col gap-2.5">
               <div class="flex gap-2">
                 <select v-model="naType" :class="drawerSelect" class="!w-auto">
                   <option v-for="t in ACTIVITY_TYPES" :key="t.value" :value="t.value">{{ t.label }}</option>
@@ -431,30 +506,24 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
                 />
               </div>
 
-              <!-- nota: texto livre; interação: detalhes opcionais -->
               <textarea
                 v-if="isNota"
                 v-model="naTitle"
                 placeholder="Escreva uma anotação…"
-                class="w-full min-h-[70px] px-3 py-2 text-[13px] text-slate-900 border border-slate-300 rounded-lg outline-none resize-y leading-[1.5]"
+                class="w-full min-h-[56px] px-3 py-2 text-[13px] text-slate-900 border border-slate-300 rounded-lg outline-none resize-y leading-[1.5]"
               ></textarea>
               <textarea
                 v-else
                 v-model="naNotes"
                 placeholder="Detalhes (opcional)"
-                class="w-full min-h-[70px] px-3 py-2 text-[13px] text-slate-900 border border-slate-300 rounded-lg outline-none resize-y leading-[1.5]"
+                class="w-full min-h-[44px] px-3 py-2 text-[13px] text-slate-900 border border-slate-300 rounded-lg outline-none resize-y leading-[1.5]"
               ></textarea>
 
               <div class="flex flex-wrap items-center gap-2">
                 <div v-if="!isNota" class="flex flex-col gap-1">
-                  <input
-                    v-model="naDue"
-                    type="datetime-local"
-                    :class="drawerInput"
-                    class="!w-auto"
-                  />
-                  <span class="text-[11px]" :class="naIsFuture ? 'text-brand' : 'text-slate-400'">
-                    {{ naIsFuture ? 'No futuro → agenda um follow-up' : 'No passado → registra como concluída' }}
+                  <input v-model="naDue" type="datetime-local" :class="drawerInput" class="!w-auto" />
+                  <span v-if="naIsFuture" class="text-[11px] text-brand">
+                    No futuro → agenda um follow-up
                   </span>
                 </div>
                 <div class="flex gap-2 ml-auto">
@@ -469,87 +538,6 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
                   </button>
                 </div>
               </div>
-            </div>
-
-            <div v-if="pendingActivities.length" class="flex flex-col gap-2 mb-3">
-              <div class="text-[11px] font-bold uppercase tracking-[0.05em] text-slate-400">Pendentes</div>
-              <div
-                v-for="a in pendingActivities"
-                :key="a.id"
-                class="flex items-start gap-2.5 border border-slate-100 rounded-lg px-3 py-2.5"
-              >
-                <button
-                  title="Concluir"
-                  class="mt-0.5 w-[18px] h-[18px] rounded-full border-2 border-slate-300 hover:border-brand cursor-pointer bg-white shrink-0"
-                  @click="askComplete(a)"
-                ></button>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-[11px] font-semibold text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">{{ activityLabel(a.type) }}</span>
-                    <span class="text-[13px] font-semibold text-slate-800">{{ a.title }}</span>
-                  </div>
-                  <div v-if="a.notes" class="text-[12px] text-slate-500 mt-0.5 leading-[1.5]">{{ a.notes }}</div>
-                  <span
-                    v-if="a.dueAt"
-                    class="inline-flex items-center mt-1 h-[20px] px-1.5 rounded text-[11px] font-semibold"
-                    :class="
-                      dueState(a.dueAt) === 'overdue'
-                        ? 'bg-red-50 text-red-700'
-                        : dueState(a.dueAt) === 'today'
-                          ? 'bg-[#FEF6E7] text-amber-700'
-                          : 'bg-brand-soft text-brand'
-                    "
-                    >{{ dueState(a.dueAt) === 'overdue' ? 'Atrasada · ' : '' }}{{ fmtDateTime(a.dueAt) }}</span
-                  >
-                </div>
-                <button
-                  title="Excluir"
-                  class="text-slate-300 hover:text-red-600 cursor-pointer bg-transparent border-none text-[15px] leading-none shrink-0"
-                  @click="deleteActivity(a.id)"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            <div v-if="doneActivities.length" class="flex flex-col gap-1.5">
-              <div class="text-[11px] font-bold uppercase tracking-[0.05em] text-slate-400">Histórico</div>
-              <div v-for="a in doneActivities" :key="a.id" class="flex items-start gap-2.5 px-1 py-1.5">
-                <span
-                  v-if="a.type === 'nota'"
-                  class="mt-0.5 w-[18px] h-[18px] rounded-full bg-slate-100 text-slate-400 shrink-0 flex items-center justify-center"
-                  title="Nota"
-                >
-                  <AdminIcon name="draft" :size="11" />
-                </span>
-                <span
-                  v-else
-                  class="mt-0.5 w-[18px] h-[18px] rounded-full bg-brand text-white text-[11px] flex items-center justify-center shrink-0"
-                  >✓</span
-                >
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-[11px] font-semibold text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">{{ activityLabel(a.type) }}</span>
-                    <span class="text-[13px] text-slate-700">{{ a.title }}</span>
-                  </div>
-                  <div v-if="a.notes" class="text-[12px] text-slate-500 mt-0.5 leading-[1.5]">{{ a.notes }}</div>
-                  <div class="text-[11px] text-slate-400 mt-0.5">{{ a.author }} · {{ fmtDateTime(a.doneAt || a.createdAt) }}</div>
-                </div>
-                <button
-                  title="Excluir"
-                  class="text-slate-300 hover:text-red-600 cursor-pointer bg-transparent border-none text-[15px] leading-none shrink-0"
-                  @click="deleteActivity(a.id)"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            <div
-              v-if="!pendingActivities.length && !doneActivities.length"
-              class="text-[12.5px] text-slate-400 text-center py-1"
-            >
-              Nada por aqui ainda. Escreva uma nota, registre um contato ou agende um follow-up.
             </div>
           </div>
         </div>
