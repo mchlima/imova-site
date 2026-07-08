@@ -301,8 +301,8 @@ async function persistBoard() {
   <div>
     <div class="p-4 sm:p-6">
       <PageHeader
-        title="Pipelines"
-        subtitle="Cada pipeline é um funil. Qualifique na Qualificação e repasse para a Corretagem."
+        :title="activeBoard ? `Pipeline · ${activeBoard.label}` : 'Pipelines'"
+        subtitle="Receba, qualifique e mova as oportunidades pelas etapas do funil."
       />
 
       <!-- Navegação entre pipelines fica no menu (CRM › Pipelines › …). -->
