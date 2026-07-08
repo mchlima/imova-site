@@ -22,6 +22,10 @@ const { loadStages, kanbanStagesFor, stagesFor, stageBadgeStyle } = useStages()
 // abre no pipeline do usuário (dono), mas ninguém fica bloqueado de ver os outros.
 const { pipelines, loadPipelines } = usePipelines()
 
+// usuários (responsáveis) — usados no menu de ações rápidas do card
+const { users, loadUsers } = useUsers()
+loadUsers()
+
 const activePipelineId = ref<string>('')
 const orderedBoards = computed(() => [...pipelines.value].sort((a, b) => a.order - b.order))
 const activeBoard = computed(() => pipelines.value.find((p) => p.id === activePipelineId.value) || null)
@@ -84,6 +88,16 @@ function onOpportunityUpdated(opportunity: Opportunity) {
 function onOpportunityMoved(opportunity: Opportunity) {
   onOpportunityUpdated(opportunity)
   drawerOpen.value = false
+}
+// oportunidade excluída (via menu de ações rápidas): tira da lista.
+function onOpportunityDeleted(id: string) {
+  opportunities.value = opportunities.value.filter((l) => l.id !== id)
+}
+
+// menu de ações rápidas do card (⋯ / botão direito)
+const cardMenu = ref<{ openFor: (o: Opportunity, e: MouseEvent) => void } | null>(null)
+function openCardMenu(o: Opportunity, e: MouseEvent) {
+  cardMenu.value?.openFor(o, e)
 }
 
 // link para as configurações do pipeline ativo (dono + etapas), na rota do próprio pipeline
@@ -693,14 +707,28 @@ async function persistBoard() {
             >
               <template #item="{ element: o }">
                 <div
-                  class="bg-white border border-slate-200 border-l-[3px] rounded-[9px] p-3 cursor-grab active:cursor-grabbing shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:border-slate-300 transition-colors"
+                  class="group relative bg-white border border-slate-200 border-l-[3px] rounded-[9px] p-3 cursor-grab active:cursor-grabbing shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:border-slate-300 transition-colors"
                   :style="{ borderLeftColor: tempColor(o.temperature) }"
                   :title="'Temperatura: ' + o.temperature"
                   @click="open(o.id)"
+                  @contextmenu.prevent="openCardMenu(o, $event)"
                 >
                   <div class="flex items-start gap-2">
                     <span class="text-[13.5px] font-semibold text-slate-900 truncate">{{ o.contact.name }}</span>
                   </div>
+                  <!-- ações rápidas (⋯) — aparece no hover; não abre o drawer nem arrasta -->
+                  <button
+                    class="absolute top-1.5 right-1.5 w-6 h-6 inline-flex items-center justify-center rounded-md text-slate-400 bg-white/80 opacity-0 group-hover:opacity-100 hover:bg-slate-100 hover:text-slate-700 transition-all cursor-pointer border-none"
+                    title="Ações rápidas"
+                    @click.stop.prevent="openCardMenu(o, $event)"
+                    @mousedown.stop
+                  >
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <circle cx="12" cy="5" r="1.6" />
+                      <circle cx="12" cy="12" r="1.6" />
+                      <circle cx="12" cy="19" r="1.6" />
+                    </svg>
+                  </button>
                   <div class="flex items-center justify-between gap-2 mt-2">
                     <span class="inline-flex items-center h-[18px] px-1.5 rounded text-[10.5px] font-semibold bg-slate-100 text-slate-500">{{ sourceLabel(o.source) }}</span>
                     <span
@@ -736,6 +764,17 @@ async function persistBoard() {
       :boards="orderedBoards"
       @updated="onOpportunityUpdated"
       @moved="onOpportunityMoved"
+    />
+
+    <!-- MENU de ações rápidas do card (⋯ / botão direito) -->
+    <CardActionsMenu
+      ref="cardMenu"
+      :stages="activeStages"
+      :boards="orderedBoards"
+      :users="users"
+      @updated="onOpportunityUpdated"
+      @moved="onOpportunityMoved"
+      @deleted="onOpportunityDeleted"
     />
 
     <!-- CRIAÇÃO manual (no board ativo) -->
