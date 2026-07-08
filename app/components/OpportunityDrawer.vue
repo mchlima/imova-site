@@ -3,6 +3,7 @@ import {
   type Opportunity,
   type Contact,
   type Activity,
+  type OpportunityComment,
   type RawOpportunity,
   mapOpportunity,
   formatResidence,
@@ -13,6 +14,8 @@ import {
   fmtBRL,
   fmtDateTime,
   dueState,
+  initials as personInitials,
+  avatarColor,
 } from '~/utils/opportunityModel'
 
 import type { Pipeline } from '~/composables/usePipelines'
@@ -283,7 +286,70 @@ const naIsFuture = computed(
 )
 
 // abas do drawer (a antiga "Oportunidade" saiu — ações vão pro kebab do header)
-const tab = ref<'atividades' | 'historico' | 'dados'>('atividades')
+const tab = ref<'atividades' | 'comentarios' | 'historico' | 'dados'>('atividades')
+
+// ── comentários internos ──
+const { user: authUser } = useAuth()
+const comments = computed(() => sel.value?.comments ?? [])
+const newComment = ref('')
+const editingComment = ref<string | null>(null)
+const editCommentBody = ref('')
+const commentEl = ref<HTMLElement | null>(null)
+
+function scrollComments() {
+  nextTick(() => {
+    if (commentEl.value) commentEl.value.scrollTop = commentEl.value.scrollHeight
+  })
+}
+async function addComment() {
+  const id = sel.value?.id
+  const body = newComment.value.trim()
+  if (!id || !body) return
+  newComment.value = ''
+  try {
+    const updated = await $fetch<RawOpportunity>(`/opportunities/${id}/comments`, {
+      baseURL: apiBase,
+      method: 'POST',
+      credentials: 'include',
+      body: { body },
+    })
+    emit('updated', mapOpportunity(updated))
+    scrollComments()
+  } catch {
+    newComment.value = body // devolve o texto se falhar
+  }
+}
+function startEditComment(c: OpportunityComment) {
+  editingComment.value = c.id
+  editCommentBody.value = c.body
+}
+function cancelEditComment() {
+  editingComment.value = null
+  editCommentBody.value = ''
+}
+async function saveEditComment(c: OpportunityComment) {
+  const id = sel.value?.id
+  const body = editCommentBody.value.trim()
+  if (!id || !body) return
+  cancelEditComment()
+  const updated = await $fetch<RawOpportunity>(`/opportunities/${id}/comments/${c.id}`, {
+    baseURL: apiBase,
+    method: 'PATCH',
+    credentials: 'include',
+    body: { body },
+  })
+  emit('updated', mapOpportunity(updated))
+}
+async function deleteComment(c: OpportunityComment) {
+  const id = sel.value?.id
+  if (!id) return
+  const updated = await $fetch<RawOpportunity>(`/opportunities/${id}/comments/${c.id}`, {
+    baseURL: apiBase,
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  emit('updated', mapOpportunity(updated))
+}
 
 // ao (re)abrir o drawer: atualiza o campo de data e volta pra aba Atividades
 watch(open, (v) => {
@@ -297,6 +363,7 @@ watch(open, (v) => {
 // ao entrar na aba Atividades, rola pro fim (mais recente)
 watch(tab, (t) => {
   if (t === 'atividades') scrollTimeline()
+  if (t === 'comentarios') scrollComments()
 })
 
 // timeline única, cronológica (mais antiga no topo; a mais recente fica colada no form embaixo).
@@ -522,6 +589,14 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
             <button
               type="button"
               class="pb-2.5 -mb-px text-[13px] font-semibold border-b-2 cursor-pointer bg-transparent transition-colors"
+              :class="tab === 'comentarios' ? 'text-brand border-brand' : 'text-slate-500 border-transparent hover:text-slate-700'"
+              @click="tab = 'comentarios'"
+            >
+              Comentários<span v-if="comments.length" class="ml-1 text-slate-400">{{ comments.length }}</span>
+            </button>
+            <button
+              type="button"
+              class="pb-2.5 -mb-px text-[13px] font-semibold border-b-2 cursor-pointer bg-transparent transition-colors"
               :class="tab === 'historico' ? 'text-brand border-brand' : 'text-slate-500 border-transparent hover:text-slate-700'"
               @click="tab = 'historico'"
             >
@@ -559,6 +634,73 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
           </div>
           <div v-if="!fieldSections.length" class="text-[13px] text-slate-400 text-center py-6">
             Nenhum campo personalizado. Configure em Configurações.
+          </div>
+        </div>
+
+        <!-- ABA COMENTÁRIOS (thread interno: lista rola acima, form fixo embaixo) -->
+        <div v-show="tab === 'comentarios'" class="flex-1 min-h-0 flex flex-col">
+          <div ref="commentEl" class="flex-1 min-h-0 overflow-y-auto px-[22px] py-4">
+            <div v-if="!comments.length" class="text-[13px] text-slate-400 text-center py-8">
+              Nenhum comentário ainda. Deixe o primeiro para a equipe.
+            </div>
+            <div class="flex flex-col gap-3.5">
+              <div v-for="c in comments" :key="c.id" class="group/cmt flex gap-2.5">
+                <span
+                  class="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-white text-[11px] font-bold"
+                  :style="{ backgroundColor: avatarColor(c.authorId) }"
+                >
+                  {{ personInitials(c.author) }}
+                </span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <span class="text-[12.5px] font-semibold text-slate-800">{{ c.author || '—' }}</span>
+                    <span class="text-[11px] text-slate-400">
+                      {{ fmtDateTime(c.createdAt) }}<template v-if="c.updatedAt !== c.createdAt"> · editado</template>
+                    </span>
+                    <span
+                      v-if="authUser && c.authorId === authUser.id && editingComment !== c.id"
+                      class="ml-auto flex items-center gap-2 opacity-0 group-hover/cmt:opacity-100 transition-opacity"
+                    >
+                      <button type="button" class="text-[11px] font-semibold text-slate-400 hover:text-slate-700 bg-transparent border-none cursor-pointer p-0" @click="startEditComment(c)">Editar</button>
+                      <button type="button" class="text-[11px] font-semibold text-slate-400 hover:text-red-600 bg-transparent border-none cursor-pointer p-0" @click="deleteComment(c)">Excluir</button>
+                    </span>
+                  </div>
+                  <div v-if="editingComment === c.id" class="mt-1">
+                    <textarea
+                      v-model="editCommentBody"
+                      rows="2"
+                      class="w-full px-3 py-2 text-[13px] text-slate-900 border border-slate-300 rounded-lg outline-none resize-y leading-[1.5]"
+                    ></textarea>
+                    <div class="flex gap-2 mt-1">
+                      <button type="button" class="h-8 px-3 text-[12.5px] font-semibold text-white bg-brand rounded-md cursor-pointer border-none hover:bg-brand-dark disabled:opacity-50" :disabled="!editCommentBody.trim()" @click="saveEditComment(c)">Salvar</button>
+                      <button type="button" class="h-8 px-3 text-[12.5px] font-semibold text-slate-600 bg-white border border-slate-200 rounded-md cursor-pointer" @click="cancelEditComment">Cancelar</button>
+                    </div>
+                  </div>
+                  <div v-else class="text-[13px] text-slate-700 whitespace-pre-wrap leading-snug mt-0.5">{{ c.body }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- composer -->
+          <div class="shrink-0 border-t border-slate-200 bg-white px-[22px] py-3">
+            <textarea
+              v-model="newComment"
+              rows="2"
+              placeholder="Escreva um comentário interno… (Ctrl+Enter para enviar)"
+              class="w-full min-h-[44px] px-3 py-2 text-[13px] text-slate-900 border border-slate-300 rounded-lg outline-none resize-y leading-[1.5]"
+              @keydown.enter.ctrl.prevent="addComment"
+              @keydown.enter.meta.prevent="addComment"
+            ></textarea>
+            <div class="flex justify-end mt-2">
+              <button
+                type="button"
+                class="h-9 px-3.5 text-[13px] font-semibold text-white bg-brand rounded-[7px] cursor-pointer border-none hover:bg-brand-dark disabled:opacity-50"
+                :disabled="!newComment.trim()"
+                @click="addComment"
+              >
+                Comentar
+              </button>
+            </div>
           </div>
         </div>
 

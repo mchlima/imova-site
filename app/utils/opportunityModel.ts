@@ -23,6 +23,15 @@ export interface OpportunityEvent {
   author: string
   createdAt: string
 }
+// Comentário interno da equipe (aba "Comentários").
+export interface OpportunityComment {
+  id: string
+  body: string
+  authorId: string
+  author: string
+  createdAt: string
+  updatedAt: string
+}
 // Forma de contato (vários por pessoa): email | whatsapp | telefone | outro.
 export interface ContactChannel {
   id: string
@@ -112,6 +121,8 @@ export interface Opportunity {
   activities: Activity[]
   // histórico de alterações/movimentações (mais recente primeiro)
   events: OpportunityEvent[]
+  // comentários internos (mais antigo primeiro)
+  comments: OpportunityComment[]
   // responsáveis (0..N) — vêm do backend como { id, name }
   assignees: Assignee[]
 }
