@@ -199,6 +199,10 @@ const naDue = ref(nowLocal())
 const savingActivity = ref(false)
 // nota = anotação livre: sem detalhes, sem data, nunca vira follow-up
 const isNota = computed(() => naType.value === 'nota')
+// interação (não-nota): data no futuro = agendamento (follow-up); passada/agora = registro concluído
+const naIsFuture = computed(
+  () => !isNota.value && !!naDue.value && new Date(naDue.value).getTime() > Date.now(),
+)
 
 // abas do drawer
 const tab = ref<'oportunidade' | 'atividades' | 'dados'>('oportunidade')
@@ -229,17 +233,24 @@ const doneActivities = computed(() =>
     ),
 )
 
-async function saveActivity(schedule: boolean) {
+async function saveActivity() {
   const id = sel.value?.id
   const title = naTitle.value.trim()
   if (!id || !title) return
-  if (schedule && !naDue.value) return
+  if (!isNota.value && !naDue.value) return
   savingActivity.value = true
   try {
     const body: Record<string, unknown> = { type: naType.value, title }
-    if (!isNota.value && naNotes.value.trim()) body.notes = naNotes.value.trim()
-    if (schedule) body.dueAt = new Date(naDue.value).toISOString()
-    else body.done = true
+    if (isNota.value) {
+      // nota: só histórico, sem data, nunca vira follow-up
+      body.done = true
+    } else {
+      if (naNotes.value.trim()) body.notes = naNotes.value.trim()
+      const due = new Date(naDue.value)
+      body.dueAt = due.toISOString()
+      // passado/agora → registro concluído (não polui follow-up); futuro → agendamento
+      body.done = due.getTime() <= Date.now()
+    }
     const updated = await $fetch<RawOpportunity>(`/opportunities/${id}/activities`, {
       baseURL: apiBase,
       method: 'POST',
@@ -547,30 +558,26 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
               ></textarea>
 
               <div class="flex flex-wrap items-center gap-2">
-                <input
-                  v-if="!isNota"
-                  v-model="naDue"
-                  type="datetime-local"
-                  :class="drawerInput"
-                  class="!w-auto"
-                />
+                <div v-if="!isNota" class="flex flex-col gap-1">
+                  <input
+                    v-model="naDue"
+                    type="datetime-local"
+                    :class="drawerInput"
+                    class="!w-auto"
+                  />
+                  <span class="text-[11px]" :class="naIsFuture ? 'text-brand' : 'text-slate-400'">
+                    {{ naIsFuture ? 'No futuro → agenda um follow-up' : 'No passado → registra como concluída' }}
+                  </span>
+                </div>
                 <div class="flex gap-2 ml-auto">
                   <button
-                    class="h-9 px-3 bg-slate-900 text-white text-[13px] font-semibold rounded-[7px] cursor-pointer hover:bg-slate-800 border-none disabled:opacity-50"
-                    :disabled="savingActivity || !naTitle.trim()"
-                    :title="isNota ? 'Adiciona a anotação ao histórico' : 'Registra como já realizada agora'"
-                    @click="saveActivity(false)"
+                    class="h-9 px-3.5 text-[13px] font-semibold rounded-[7px] cursor-pointer border-none disabled:opacity-50"
+                    :class="naIsFuture ? 'bg-brand text-white hover:bg-brand-dark' : 'bg-slate-900 text-white hover:bg-slate-800'"
+                    :disabled="savingActivity || !naTitle.trim() || (!isNota && !naDue)"
+                    :title="isNota ? 'Adiciona a anotação ao histórico' : naIsFuture ? 'Agenda para a data/hora escolhida (follow-up)' : 'Registra como já realizada (concluída)'"
+                    @click="saveActivity()"
                   >
-                    {{ isNota ? 'Adicionar' : 'Registrar' }}
-                  </button>
-                  <button
-                    v-if="!isNota"
-                    class="h-9 px-3 bg-white border border-slate-300 text-slate-700 text-[13px] font-semibold rounded-[7px] cursor-pointer hover:bg-slate-100 disabled:opacity-50"
-                    :disabled="savingActivity || !naTitle.trim() || !naDue"
-                    title="Agenda para a data/hora escolhida"
-                    @click="saveActivity(true)"
-                  >
-                    Agendar
+                    {{ isNota ? 'Adicionar' : naIsFuture ? 'Agendar' : 'Registrar' }}
                   </button>
                 </div>
               </div>
