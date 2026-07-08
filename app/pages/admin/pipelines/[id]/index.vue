@@ -681,8 +681,10 @@ async function persistBoard() {
         </div>
       </div>
 
-      <!-- KANBAN (visão quadro) — colunas sempre lado a lado, com scroll lateral -->
-      <div v-else class="flex-1 min-h-0 flex flex-col">
+      <!-- KANBAN (visão quadro) — colunas sempre lado a lado, com scroll lateral.
+           Fura o padding da página (-mx/-mb) para o scroll horizontal ocupar a
+           largura toda e encostar na base; o espaçamento vira padding interno. -->
+      <div v-else class="flex-1 min-h-0 flex flex-col -mx-4 sm:-mx-6 -mb-4 sm:-mb-6">
         <div v-if="loading" class="text-center py-12 text-slate-400 text-[14px]">
           Carregando oportunidades…
         </div>
@@ -692,7 +694,7 @@ async function persistBoard() {
             Tentar de novo
           </button>
         </div>
-        <div v-else class="flex gap-4 items-stretch overflow-x-auto flex-1 min-h-0">
+        <div v-else class="flex gap-4 items-stretch overflow-x-auto flex-1 min-h-0 px-4 sm:px-6 pb-4 sm:pb-6">
           <div
             v-for="col in boardCols"
             :key="col.stageId"
