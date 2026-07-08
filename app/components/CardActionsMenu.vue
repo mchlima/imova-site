@@ -24,7 +24,7 @@ const apiBase = useRuntimeConfig().public.apiBase
 
 const opp = ref<Opportunity | null>(null)
 const openState = ref(false)
-const view = ref<'root' | 'stage' | 'assignee' | 'temp'>('root')
+const view = ref<'root' | 'move' | 'stage' | 'assignee' | 'temp'>('root')
 const pos = ref({ x: 0, y: 0 })
 const busy = ref(false)
 
@@ -158,6 +158,29 @@ const head =
   'w-full flex items-center gap-2 h-9 px-3 text-left text-[13px] font-semibold text-slate-800 hover:bg-slate-50 cursor-pointer border-none bg-transparent'
 const divider = 'my-1 border-t border-slate-100'
 const chev = 'text-slate-400 text-[12px]'
+
+// ícones (paths internos de um <svg viewBox="0 0 24 24">, stroke)
+const ICONS: Record<string, string> = {
+  send: '<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4L22 2z"/>',
+  stage: '<rect x="3" y="4" width="6" height="16" rx="1"/><rect x="10" y="4" width="6" height="11" rx="1"/><rect x="17" y="4" width="6" height="7" rx="1"/>',
+  user: '<circle cx="12" cy="8" r="3.4"/><path d="M5 20v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1"/>',
+  temp: '<path d="M14 14.76V4a2 2 0 1 0-4 0v10.76a4 4 0 1 0 4 0z"/>',
+  won: '<circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/>',
+  lost: '<circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/>',
+  trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/>',
+}
+// ícone reutilizável: <MIcon name="send" /> (aceita class extra p/ cor)
+const MIcon = (props: { name: string; class?: unknown }) =>
+  h('svg', {
+    class: ['w-4 h-4 shrink-0 text-slate-400', props.class],
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    'stroke-width': 1.8,
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
+    innerHTML: ICONS[props.name] || '',
+  })
 </script>
 
 <template>
@@ -179,31 +202,45 @@ const chev = 'text-slate-400 text-[12px]'
             {{ opp.contact.name }}
           </div>
           <template v-if="otherBoards.length">
-            <button v-for="b in otherBoards" :key="b.id" :class="item" :disabled="busy" @click="moveTo(b)">
-              <span>Enviar p/ {{ b.label }}</span>
-              <span :class="chev">→</span>
+            <button :class="item" @click="view = 'move'">
+              <span class="flex items-center gap-2.5"><MIcon name="send" /> Enviar para</span>
+              <span :class="chev">▸</span>
             </button>
             <div :class="divider" />
           </template>
           <button :class="item" @click="view = 'stage'">
-            <span>Mudar etapa</span><span :class="chev">▸</span>
+            <span class="flex items-center gap-2.5"><MIcon name="stage" /> Mudar etapa</span>
+            <span :class="chev">▸</span>
           </button>
           <button :class="item" @click="view = 'assignee'">
-            <span>Responsável</span><span :class="chev">▸</span>
+            <span class="flex items-center gap-2.5"><MIcon name="user" /> Responsável</span>
+            <span :class="chev">▸</span>
           </button>
           <button :class="item" @click="view = 'temp'">
-            <span>Temperatura</span><span :class="chev">▸</span>
+            <span class="flex items-center gap-2.5"><MIcon name="temp" /> Temperatura</span>
+            <span :class="chev">▸</span>
           </button>
           <div :class="divider" />
           <button v-if="wonStage" :class="item" @click="markWon">
-            <span class="text-emerald-600 font-semibold">Marcar ganho</span>
+            <span class="flex items-center gap-2.5 text-emerald-600 font-semibold">
+              <MIcon name="won" class="!text-emerald-600" /> Marcar ganho
+            </span>
           </button>
           <button v-if="lostStage" :class="item" @click="markLost">
-            <span class="text-slate-600">Marcar perdido</span>
+            <span class="flex items-center gap-2.5"><MIcon name="lost" /> Marcar perdido</span>
           </button>
           <div :class="divider" />
           <button :class="item" class="!text-red-600 hover:!bg-red-50" @click="removeOpp">
-            <span>Excluir</span>
+            <span class="flex items-center gap-2.5"><MIcon name="trash" class="!text-red-500" /> Excluir</span>
+          </button>
+        </template>
+
+        <!-- ENVIAR PARA (boards de destino) -->
+        <template v-else-if="view === 'move'">
+          <button :class="head" @click="view = 'root'"><span :class="chev">←</span> Enviar para</button>
+          <div :class="divider" />
+          <button v-for="b in otherBoards" :key="b.id" :class="item" :disabled="busy" @click="moveTo(b)">
+            <span class="flex items-center gap-2.5"><MIcon name="send" /> {{ b.label }}</span>
           </button>
         </template>
 
@@ -212,7 +249,7 @@ const chev = 'text-slate-400 text-[12px]'
           <button :class="head" @click="view = 'root'"><span :class="chev">←</span> Mudar etapa</button>
           <div :class="divider" />
           <button v-for="s in stages" :key="s.key" :class="item" @click="setStage(s.key)">
-            <span class="flex items-center gap-2">
+            <span class="flex items-center gap-2.5">
               <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: s.color }"></span>
               {{ s.label }}
             </span>
@@ -225,7 +262,7 @@ const chev = 'text-slate-400 text-[12px]'
           <button :class="head" @click="view = 'root'"><span :class="chev">←</span> Responsável</button>
           <div :class="divider" />
           <button v-for="u in users" :key="u.id" :class="item" @click="toggleAssignee(u)">
-            <span class="truncate">{{ u.name }}</span>
+            <span class="flex items-center gap-2.5 truncate"><MIcon name="user" /> {{ u.name }}</span>
             <span v-if="isAssigned(u.id)" class="text-brand">✓</span>
           </button>
           <div v-if="!users.length" class="px-3 py-2 text-[12px] text-slate-400">Nenhum usuário.</div>
@@ -236,7 +273,7 @@ const chev = 'text-slate-400 text-[12px]'
           <button :class="head" @click="view = 'root'"><span :class="chev">←</span> Temperatura</button>
           <div :class="divider" />
           <button v-for="t in TEMPS" :key="t" :class="item" @click="setTemp(t)">
-            <span class="flex items-center gap-2">
+            <span class="flex items-center gap-2.5">
               <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: tempHex(t) }"></span>
               {{ t }}
             </span>
