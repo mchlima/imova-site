@@ -182,6 +182,71 @@ const ActIcon = (props: { type: string; size?: number }) =>
     innerHTML: ACT_ICONS[props.type] || '<circle cx="12" cy="12" r="9"/>',
   })
 
+// ── histórico (eventos do sistema) ──
+const EVENT_ICONS: Record<string, string> = {
+  created: '<path d="M12 5v14M5 12h14"/>',
+  stage_changed: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  won: '<path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M12 14v4M8 21h8"/>',
+  lost: '<circle cx="12" cy="12" r="9"/><path d="m15 9-6 6M9 9l6 6"/>',
+  pipeline_changed: '<path d="M7 16V4M4 7l3-3 3 3"/><path d="M17 8v12M14 17l3 3 3-3"/>',
+  assignees_changed: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="8" r="3.5"/>',
+  temperature_changed: '<path d="M14 14.76V4a2 2 0 1 0-4 0v10.76a4 4 0 1 0 4 0z"/>',
+  fields_updated: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+}
+const EvIcon = (props: { type: string; size?: number }) =>
+  h('svg', {
+    width: props.size || 14,
+    height: props.size || 14,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    'stroke-width': 1.8,
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
+    innerHTML: EVENT_ICONS[props.type] || '<circle cx="12" cy="12" r="9"/>',
+  })
+const EVENT_COLORS: Record<string, string> = {
+  created: '#4338ca',
+  stage_changed: '#0369a1',
+  won: '#146c4e',
+  lost: '#be123c',
+  pipeline_changed: '#7c3aed',
+  assignees_changed: '#0f766e',
+  temperature_changed: '#c2410c',
+  fields_updated: '#64748b',
+}
+const eventColor = (t: string) => EVENT_COLORS[t] || '#64748b'
+// eventos já vêm do backend do mais recente para o mais antigo
+const eventTimeline = computed(() => sel.value?.events ?? [])
+// descrição legível de cada evento (rótulos "congelados" vêm no data)
+function eventText(e: { type: string; data: Record<string, unknown> }) {
+  const d = (e.data || {}) as Record<string, any>
+  switch (e.type) {
+    case 'created':
+      return 'Oportunidade criada'
+    case 'stage_changed':
+      return `Mudou de estágio: ${d.fromStageLabel || '—'} → ${d.toStageLabel || '—'}`
+    case 'won':
+      return `Marcou como ganho${d.toStageLabel ? ` (${d.toStageLabel})` : ''}`
+    case 'lost':
+      return `Marcou como perdido${d.lossReason ? ` — ${d.lossReason}` : ''}`
+    case 'pipeline_changed':
+      return `Repassou: ${d.fromPipelineLabel || '—'} → ${d.toPipelineLabel || '—'}`
+    case 'temperature_changed':
+      return `Temperatura: ${d.from || '—'} → ${d.to || '—'}`
+    case 'assignees_changed': {
+      const parts: string[] = []
+      if (Array.isArray(d.added) && d.added.length) parts.push(`+ ${d.added.join(', ')}`)
+      if (Array.isArray(d.removed) && d.removed.length) parts.push(`− ${d.removed.join(', ')}`)
+      return `Responsáveis ${parts.join('   ') || 'atualizados'}`
+    }
+    case 'fields_updated':
+      return `Atualizou: ${Array.isArray(d.fields) ? d.fields.join(', ') : 'campos'}`
+    default:
+      return e.type
+  }
+}
+
 // valor inicial do campo datetime-local = agora (formato YYYY-MM-DDTHH:mm)
 function nowLocal() {
   const d = new Date()
@@ -201,7 +266,7 @@ const naIsFuture = computed(
 )
 
 // abas do drawer (a antiga "Oportunidade" saiu — ações vão pro kebab do header)
-const tab = ref<'atividades' | 'dados'>('atividades')
+const tab = ref<'atividades' | 'historico' | 'dados'>('atividades')
 
 // ao (re)abrir o drawer: atualiza o campo de data e volta pra aba Atividades
 watch(open, (v) => {
@@ -439,6 +504,14 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
             <button
               type="button"
               class="pb-2.5 -mb-px text-[13px] font-semibold border-b-2 cursor-pointer bg-transparent transition-colors"
+              :class="tab === 'historico' ? 'text-brand border-brand' : 'text-slate-500 border-transparent hover:text-slate-700'"
+              @click="tab = 'historico'"
+            >
+              Histórico
+            </button>
+            <button
+              type="button"
+              class="pb-2.5 -mb-px text-[13px] font-semibold border-b-2 cursor-pointer bg-transparent transition-colors"
               :class="tab === 'dados' ? 'text-brand border-brand' : 'text-slate-500 border-transparent hover:text-slate-700'"
               @click="tab = 'dados'"
             >
@@ -468,6 +541,35 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
           </div>
           <div v-if="!fieldSections.length" class="text-[13px] text-slate-400 text-center py-6">
             Nenhum campo personalizado. Configure em Configurações.
+          </div>
+        </div>
+
+        <!-- ABA HISTÓRICO (log read-only de alterações/movimentações) -->
+        <div v-show="tab === 'historico'" class="flex-1 min-h-0 overflow-y-auto px-[22px] py-4">
+          <div v-if="!eventTimeline.length" class="text-[13px] text-slate-400 text-center py-8">
+            Sem alterações registradas ainda.
+          </div>
+          <div v-for="(e, i) in eventTimeline" :key="e.id" class="relative flex gap-3">
+            <!-- nó + trilho vertical -->
+            <div class="flex flex-col items-center">
+              <span
+                class="inline-flex items-center justify-center w-6 h-6 rounded-full text-white shrink-0"
+                :style="{ backgroundColor: eventColor(e.type) }"
+              >
+                <EvIcon :type="e.type" :size="13" />
+              </span>
+              <div
+                v-if="i < eventTimeline.length - 1"
+                class="w-px flex-1 bg-slate-200 my-1 min-h-[10px]"
+              ></div>
+            </div>
+            <!-- conteúdo -->
+            <div class="pb-4 min-w-0">
+              <div class="text-[13px] text-slate-800 leading-snug">{{ eventText(e) }}</div>
+              <div class="text-[11.5px] text-slate-400 mt-0.5">
+                {{ e.author || 'Sistema' }} · {{ fmtDateTime(e.createdAt) }}
+              </div>
+            </div>
           </div>
         </div>
 

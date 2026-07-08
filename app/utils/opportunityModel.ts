@@ -12,6 +12,17 @@ export interface Activity {
   author: string
   createdAt: string
 }
+// Evento do histórico (log imutável de alterações/movimentações).
+// type: created | stage_changed | won | lost | pipeline_changed
+//     | assignees_changed | temperature_changed | fields_updated
+export interface OpportunityEvent {
+  id: string
+  type: string
+  // payload por tipo (from/to, rótulos congelados, etc.)
+  data: Record<string, unknown>
+  author: string
+  createdAt: string
+}
 // Forma de contato (vários por pessoa): email | whatsapp | telefone | outro.
 export interface ContactChannel {
   id: string
@@ -99,6 +110,8 @@ export interface Opportunity {
   fields: Record<string, unknown>
   createdAt: string
   activities: Activity[]
+  // histórico de alterações/movimentações (mais recente primeiro)
+  events: OpportunityEvent[]
   // responsáveis (0..N) — vêm do backend como { id, name }
   assignees: Assignee[]
 }
