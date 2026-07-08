@@ -311,7 +311,11 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
           <div class="px-[22px] pt-[18px] pb-3.5">
             <!-- topo: avatar + nome/meta + ações -->
             <div class="flex items-start gap-3">
-              <div class="w-11 h-11 rounded-full bg-brand-soft text-brand font-bold text-[15px] flex items-center justify-center shrink-0 select-none">
+              <div
+                class="w-11 h-11 rounded-full font-bold text-[15px] flex items-center justify-center shrink-0 select-none"
+                :style="tempBadgeStyle(sel.temperature)"
+                :title="'Temperatura: ' + sel.temperature"
+              >
                 {{ initials }}
               </div>
 
@@ -359,10 +363,13 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
               </div>
             </div>
 
-            <!-- chips: status + temperatura + responsáveis -->
-            <div class="flex items-center gap-2 flex-wrap mt-3">
+            <!-- chips: status + temperatura (bolinha) + responsáveis -->
+            <div class="flex items-center gap-2.5 flex-wrap mt-3">
               <span :class="badgeBase" :style="stageBadgeStyle(sel.status)">{{ stageLabel(sel.status) }}</span>
-              <span :class="badgeBase" :style="tempBadgeStyle(sel.temperature)">{{ sel.temperature }}</span>
+              <span class="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-600">
+                <span class="w-2.5 h-2.5 rounded-full shrink-0" :style="{ backgroundColor: tempBadgeStyle(sel.temperature).color }"></span>
+                {{ sel.temperature }}
+              </span>
               <AvatarStack v-if="sel.assignees?.length" :users="sel.assignees" :size="22" :max="4" />
             </div>
 
