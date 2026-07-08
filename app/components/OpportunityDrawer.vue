@@ -6,6 +6,7 @@ import {
   type RawOpportunity,
   mapOpportunity,
   formatResidence,
+  sourceLabel,
   CHANNEL_LABELS,
   CHANNEL_ICONS,
   tempBadgeStyle,
@@ -322,6 +323,13 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
               <div class="flex items-center gap-2 flex-wrap mb-1.5">
                 <span :class="badgeBase" :style="tempBadgeStyle(sel.temperature)">{{ sel.temperature }}</span>
                 <span :class="badgeBase" :style="stageBadgeStyle(sel.status)">{{ stageLabel(sel.status) }}</span>
+                <span
+                  v-if="sel.source"
+                  :class="badgeBase"
+                  class="bg-slate-100 text-slate-500"
+                  title="Origem do lead"
+                  >{{ sourceLabel(sel.source) }}</span
+                >
                 <AvatarStack v-if="sel.assignees?.length" :users="sel.assignees" :size="22" :max="4" />
               </div>
 
