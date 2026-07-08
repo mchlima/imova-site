@@ -1,0 +1,125 @@
+@import 'tailwindcss';
+
+/* Paleta extraída do design simulador-avancado.dc.html */
+@theme {
+  --color-brand: #146c4e; /* verde da marca (Meu Revelar) */
+  --color-brand-dark: #105640; /* hover */
+  --color-brand-soft: #e7f1ec; /* badge "Municipal" */
+  --color-ink: #0f172a; /* texto / cards escuros */
+
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  /* trilho de carrossel sem barra de rolagem visível */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  body {
+    margin: 0;
+    background: #f8fafc;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: #0f172a;
+  }
+
+  ::selection {
+    background: #146c4e;
+    color: #fff;
+  }
+
+  /* Slider — mesmo visual do design (trilho fino + thumb verde) */
+  input[type='range'] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #146c4e;
+    border: 3px solid #fff;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25);
+    cursor: pointer;
+    transition: transform 0.15s ease;
+  }
+  input[type='range']::-webkit-slider-thumb:hover {
+    transform: scale(1.12);
+  }
+  input[type='range']::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #146c4e;
+    border: 3px solid #fff;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25);
+    cursor: pointer;
+  }
+
+  /* Páginas legais (política de privacidade, termos de uso) */
+  .legal h2 {
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: #0f172a;
+    margin: 40px 0 12px;
+  }
+  .legal h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 24px 0 8px;
+  }
+  .legal p {
+    font-size: 15.5px;
+    line-height: 1.7;
+    color: #475569;
+    margin: 0 0 16px;
+  }
+  .legal ul {
+    margin: 0 0 16px;
+    padding-left: 22px;
+    list-style: disc;
+  }
+  .legal li {
+    font-size: 15.5px;
+    line-height: 1.7;
+    color: #475569;
+    margin: 0 0 8px;
+  }
+  .legal a {
+    color: #146c4e;
+    font-weight: 500;
+  }
+
+  /* Select — seta custom igual ao design */
+  select {
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+}
