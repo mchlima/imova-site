@@ -107,6 +107,12 @@ const settingsLink = computed(() =>
 
 // criação manual (NewOpportunityDrawer)
 const newOppOpen = ref(false)
+// estágio inicial da nova oportunidade (setado ao criar direto de uma coluna do kanban)
+const newOppStageId = ref<string | undefined>(undefined)
+function openNewOpp(stageId?: string) {
+  newOppStageId.value = stageId
+  newOppOpen.value = true
+}
 function onOpportunityCreated(opportunity: Opportunity) {
   opportunities.value = [opportunity, ...opportunities.value]
   open(opportunity.id) // abre o detalhe da recém-criada
@@ -336,7 +342,7 @@ async function persistBoard() {
         </div>
         <button
           class="inline-flex items-center gap-1.5 h-[38px] px-3.5 bg-brand text-white text-[13px] font-semibold rounded-[7px] cursor-pointer border-none hover:bg-brand-dark shrink-0"
-          @click="newOppOpen = true"
+          @click="openNewOpp()"
         >
           <span class="text-[15px] leading-none">+</span> Nova oportunidade
         </button>
@@ -698,7 +704,7 @@ async function persistBoard() {
           <div
             v-for="col in boardCols"
             :key="col.stageId"
-            class="w-[296px] shrink-0 bg-slate-100/70 rounded-xl p-2.5 flex flex-col overflow-hidden"
+            class="group/col w-[296px] shrink-0 bg-slate-100/70 rounded-xl p-2.5 flex flex-col overflow-hidden"
           >
             <!-- header da coluna -->
             <div class="flex items-center gap-2 px-2 py-2">
@@ -708,6 +714,14 @@ async function persistBoard() {
                 class="ml-auto inline-flex items-center justify-center min-w-[20px] h-[19px] px-1.5 rounded-full bg-white text-slate-500 text-[11px] font-bold"
                 >{{ col.items.length }}</span
               >
+              <button
+                type="button"
+                title="Nova oportunidade neste estágio"
+                class="inline-flex items-center justify-center w-[22px] h-[22px] rounded-md bg-transparent border-none text-slate-400 cursor-pointer transition-all opacity-0 group-hover/col:opacity-100 hover:text-brand hover:bg-white"
+                @click="openNewOpp(col.stageId)"
+              >
+                <span class="text-[16px] leading-none">+</span>
+              </button>
             </div>
 
             <!-- cards (arraste para reordenar ou mover entre colunas) -->
@@ -798,6 +812,7 @@ async function persistBoard() {
     <NewOpportunityDrawer
       v-model="newOppOpen"
       :pipeline-id="activePipelineId"
+      :initial-stage-id="newOppStageId"
       @created="onOpportunityCreated"
     />
   </div>

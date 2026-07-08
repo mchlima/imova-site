@@ -12,7 +12,8 @@ import {
 // Drawer de CRIAÇÃO de oportunidade. Estado local; POST /opportunities ao criar.
 // Genérico: as seções/campos vêm das definições do tenant (sem domínio hardcoded).
 // pipelineId = board onde criar (vem do board ativo do quadro).
-const props = defineProps<{ modelValue: boolean; pipelineId?: string }>()
+// initialStageId = estágio pré-selecionado (ao criar direto de uma coluna do kanban).
+const props = defineProps<{ modelValue: boolean; pipelineId?: string; initialStageId?: string }>()
 const emit = defineEmits<{ 'update:modelValue': [boolean]; created: [Opportunity] }>()
 
 const apiBase = useRuntimeConfig().public.apiBase
@@ -79,7 +80,11 @@ function reset() {
   contactId.value = ''
   newContact.name = ''
   newContact.channels = []
-  stageId.value = boardStages.value[0]?.id || ''
+  // se veio um estágio inicial válido para este board, pré-seleciona; senão o 1º
+  stageId.value =
+    (props.initialStageId && boardStages.value.some((s) => s.id === props.initialStageId)
+      ? props.initialStageId
+      : boardStages.value[0]?.id) || ''
   temperature.value = 'Sem classificação'
   source.value = ''
   assignees.value = []
