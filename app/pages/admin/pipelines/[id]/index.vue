@@ -298,8 +298,8 @@ async function persistBoard() {
 </script>
 
 <template>
-  <div>
-    <div class="p-4 sm:p-6">
+  <div :class="view === 'kanban' ? 'h-[calc(100vh-56px)] flex flex-col' : ''">
+    <div class="p-4 sm:p-6" :class="view === 'kanban' ? 'flex-1 min-h-0 flex flex-col' : ''">
       <PageHeader
         :title="activeBoard ? `Pipeline · ${activeBoard.label}` : 'Pipelines'"
         subtitle="Receba, qualifique e mova as oportunidades pelas etapas do funil."
@@ -654,7 +654,7 @@ async function persistBoard() {
       </div>
 
       <!-- KANBAN (visão quadro) — colunas sempre lado a lado, com scroll lateral -->
-      <div v-else>
+      <div v-else class="flex-1 min-h-0 flex flex-col">
         <div v-if="loading" class="text-center py-12 text-slate-400 text-[14px]">
           Carregando oportunidades…
         </div>
@@ -664,7 +664,7 @@ async function persistBoard() {
             Tentar de novo
           </button>
         </div>
-        <div v-else class="flex gap-4 items-stretch overflow-x-auto pb-3 -mx-1 px-1 h-[calc(100vh-220px)]">
+        <div v-else class="flex gap-4 items-stretch overflow-x-auto pb-3 -mx-1 px-1 flex-1 min-h-0">
           <div
             v-for="col in boardCols"
             :key="col.status"
