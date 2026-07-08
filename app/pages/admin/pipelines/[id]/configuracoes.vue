@@ -17,6 +17,7 @@ interface Stage {
   isWon: boolean
   isLost: boolean
   pipelineId: string
+  oppCount?: number
 }
 
 const route = useRoute()
@@ -132,10 +133,41 @@ async function saveStage() {
   stm.open = false
   await loadAll()
 }
-async function deleteStage(s: Stage) {
-  if (!confirm(`Excluir o estágio "${s.label}"? Oportunidades nele mantêm o status.`)) return
-  await $fetch(`/stages/${s.id}`, { ...opts, method: 'DELETE' })
-  await loadAll()
+// ── excluir estágio (com migração das oportunidades) ──
+const dlm = reactive({ open: false, stage: null as Stage | null, moveTo: '', saving: false, error: '' })
+// destinos possíveis: outros estágios do mesmo pipeline
+const deleteTargets = computed(() =>
+  dlm.stage ? funnelStages.value.filter((s) => s.id !== dlm.stage!.id) : [],
+)
+function deleteStage(s: Stage) {
+  if (s.oppCount && s.oppCount > 0) {
+    // tem oportunidades → precisa migrar antes; abre o modal
+    const targets = funnelStages.value.filter((t) => t.id !== s.id)
+    if (!targets.length) {
+      alert('Este é o único estágio do pipeline. Crie outro estágio antes de excluir para onde mover as oportunidades.')
+      return
+    }
+    Object.assign(dlm, { open: true, stage: s, moveTo: targets[0]!.id, saving: false, error: '' })
+    return
+  }
+  // vazio → exclui direto
+  if (!confirm(`Excluir o estágio "${s.label}"?`)) return
+  $fetch(`/stages/${s.id}`, { ...opts, method: 'DELETE' }).then(loadAll)
+}
+async function confirmDeleteStage() {
+  if (!dlm.stage || !dlm.moveTo) return
+  dlm.saving = true
+  dlm.error = ''
+  try {
+    await $fetch(`/stages/${dlm.stage.id}`, { ...opts, method: 'DELETE', query: { moveTo: dlm.moveTo } })
+    dlm.open = false
+    await loadAll()
+  } catch (e: unknown) {
+    const msg = (e as { data?: { message?: string | string[] } })?.data?.message
+    dlm.error = (Array.isArray(msg) ? msg[0] : msg) || 'Não foi possível excluir.'
+  } finally {
+    dlm.saving = false
+  }
 }
 
 // utilitários de estilo
@@ -217,6 +249,7 @@ const badgeStyle = (c: string) => ({ color: c, backgroundColor: c + '1F' })
             <span v-if="s.inKanban" class="text-[10.5px] font-semibold text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">kanban</span>
             <span v-if="s.isWon" class="text-[10.5px] font-semibold text-emerald-700 bg-emerald-50 rounded px-1.5 py-0.5">ganho</span>
             <span v-if="s.isLost" class="text-[10.5px] font-semibold text-red-700 bg-red-50 rounded px-1.5 py-0.5">perda</span>
+            <span v-if="s.oppCount" class="text-[10.5px] font-semibold text-slate-500 bg-slate-100 rounded px-1.5 py-0.5" :title="s.oppCount + ' oportunidade(s) neste estágio'">{{ s.oppCount }} opp</span>
           </div>
           <div class="ml-auto flex items-center gap-0.5">
             <button :class="ico" :disabled="i === 0" title="Subir" @click="move(funnelStages, '/stages/reorder', i, -1)"><AdminIcon name="chevron" :size="15" class="rotate-180" /></button>
@@ -257,6 +290,32 @@ const badgeStyle = (c: string) => ({ color: c, backgroundColor: c + '1F' })
         <div class="flex justify-end gap-2 mt-5">
           <button class="h-9 px-4 text-[13px] font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg cursor-pointer" @click="stm.open = false">Cancelar</button>
           <button class="h-9 px-4 text-[13px] font-semibold text-white bg-brand rounded-lg cursor-pointer border-none hover:bg-brand-dark" @click="saveStage">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL EXCLUIR ESTÁGIO (com migração das oportunidades) -->
+    <div v-if="dlm.open && dlm.stage" class="fixed inset-0 z-[60] bg-slate-900/50 flex items-center justify-center p-6" @click="dlm.open = false">
+      <div class="bg-white rounded-xl w-full max-w-[420px] p-5" @click.stop>
+        <h3 class="text-[15px] font-bold text-slate-900 m-0 mb-1.5">Excluir "{{ dlm.stage.label }}"</h3>
+        <p class="text-[13px] text-slate-500 m-0 mb-4 leading-[1.5]">
+          Há <strong class="text-slate-700">{{ dlm.stage.oppCount }}</strong> oportunidade(s) neste estágio.
+          Para onde movê-las antes de excluir?
+        </p>
+        <label :class="label">Mover para</label>
+        <select v-model="dlm.moveTo" :class="input">
+          <option v-for="t in deleteTargets" :key="t.id" :value="t.id">{{ t.label }}</option>
+        </select>
+        <p v-if="dlm.error" class="text-[12px] text-red-600 mt-2">{{ dlm.error }}</p>
+        <div class="flex justify-end gap-2 mt-5">
+          <button class="h-9 px-4 text-[13px] font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg cursor-pointer" @click="dlm.open = false">Cancelar</button>
+          <button
+            class="h-9 px-4 text-[13px] font-semibold text-white bg-red-600 rounded-lg cursor-pointer border-none hover:bg-red-700 disabled:opacity-50"
+            :disabled="dlm.saving || !dlm.moveTo"
+            @click="confirmDeleteStage"
+          >
+            {{ dlm.saving ? 'Excluindo…' : 'Mover e excluir' }}
+          </button>
         </div>
       </div>
     </div>

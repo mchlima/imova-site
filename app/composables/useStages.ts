@@ -11,6 +11,8 @@ export interface Stage {
   isLost: boolean
   // board (pipeline) ao qual o estágio pertence — usado p/ agrupar colunas por board
   pipelineId: string
+  // nº de oportunidades atualmente neste estágio (para a config: excluir com migração)
+  oppCount?: number
 }
 
 const FALLBACK_COLOR = '#64748b' // slate-500 para status desconhecido
