@@ -665,7 +665,7 @@ async function persistBoard() {
           <div
             v-for="col in boardCols"
             :key="col.status"
-            class="w-[272px] shrink-0 bg-slate-100/70 rounded-xl p-2.5"
+            class="w-[296px] shrink-0 bg-slate-100/70 rounded-xl p-2.5"
           >
             <!-- header da coluna -->
             <div class="flex items-center gap-2 px-2 py-2">
