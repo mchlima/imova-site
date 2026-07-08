@@ -456,10 +456,8 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
                 >
 
                 <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-[11px] font-semibold text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">{{ activityLabel(a.type) }}</span>
-                    <span class="text-[13px] text-slate-800" :class="{ 'font-semibold': !a.done }">{{ a.title }}</span>
-                  </div>
+                  <span class="inline-flex items-center text-[11px] font-semibold text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">{{ activityLabel(a.type) }}</span>
+                  <div class="text-[13px] text-slate-800 mt-1" :class="{ 'font-semibold': !a.done }">{{ a.title }}</div>
                   <div v-if="a.notes" class="text-[12px] text-slate-500 mt-0.5 leading-[1.5]">{{ a.notes }}</div>
                   <!-- pendente: prazo; concluída: autor · quando -->
                   <span
