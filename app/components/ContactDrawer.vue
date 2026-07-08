@@ -113,7 +113,7 @@ const slideT = {
             <NuxtLink
               v-for="o in detail.opportunities"
               :key="o.id"
-              :to="`/admin/oportunidades?oportunidade=${o.id}`"
+              :to="`/admin/pipelines?oportunidade=${o.id}`"
               class="flex items-center justify-between gap-2 border border-slate-100 rounded-lg px-3 py-2.5 no-underline hover:border-slate-300 transition-colors"
             >
               <div class="min-w-0">

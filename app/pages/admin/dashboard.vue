@@ -78,7 +78,7 @@ const recent = computed(() => opportunities.value.slice(0, 5))
       <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
         <h2 class="text-[15px] font-bold text-slate-900 m-0">Últimas oportunidades</h2>
         <NuxtLink
-          to="/admin/oportunidades"
+          to="/admin/pipelines"
           class="text-[13px] font-semibold text-brand no-underline"
           >Ver todos →</NuxtLink
         >

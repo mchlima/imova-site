@@ -2,11 +2,21 @@
 const { user, logout } = useAuth()
 const route = useRoute()
 
+// boards (pipelines) como sub-itens dinâmicos de "Pipelines"
+const { pipelines, loadPipelines } = usePipelines()
+loadPipelines()
+const boardLinks = computed(() =>
+  [...pipelines.value].sort((a, b) => a.order - b.order).map((p) => ({ label: p.label, key: p.key })),
+)
+const boardActive = (key: string) =>
+  route.path === '/admin/pipelines' && route.query.board === key
+
 interface NavItem {
   label: string
   to?: string
   icon: string
   children?: NavItem[]
+  boards?: boolean
 }
 const nav: NavItem[] = [
   { label: 'Dashboard', to: '/admin/dashboard', icon: 'dashboard' },
@@ -15,7 +25,7 @@ const nav: NavItem[] = [
     to: '/admin/crm',
     icon: 'opportunities',
     children: [
-      { label: 'Oportunidades', to: '/admin/oportunidades', icon: 'opportunities' },
+      { label: 'Pipelines', to: '/admin/pipelines', icon: 'opportunities', boards: true },
       { label: 'Contatos', to: '/admin/contatos', icon: 'contacts' },
       { label: 'Follow-up', to: '/admin/follow-up', icon: 'followup' },
       { label: 'Configurações', to: '/admin/configuracoes', icon: 'settings' },
@@ -105,20 +115,41 @@ async function signOut() {
               {{ item.label }}
             </NuxtLink>
             <div class="mt-1 flex flex-col gap-1 pl-2 ml-3 border-l border-slate-100">
-              <NuxtLink
-                v-for="child in item.children"
-                :key="child.to"
-                :to="child.to!"
-                class="flex items-center gap-2.5 h-[36px] px-3 rounded-lg text-[13.5px] font-medium no-underline transition-all"
-                :class="
-                  isActive(child.to!)
-                    ? 'bg-brand-soft text-brand'
-                    : 'text-slate-600 hover:bg-slate-100'
-                "
-              >
-                <AdminIcon :name="child.icon" :size="16" />
-                {{ child.label }}
-              </NuxtLink>
+              <template v-for="child in item.children" :key="child.to">
+                <NuxtLink
+                  :to="child.to!"
+                  class="flex items-center gap-2.5 h-[36px] px-3 rounded-lg text-[13.5px] font-medium no-underline transition-all"
+                  :class="
+                    isActive(child.to!)
+                      ? 'bg-brand-soft text-brand'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  "
+                >
+                  <AdminIcon :name="child.icon" :size="16" />
+                  {{ child.label }}
+                </NuxtLink>
+
+                <!-- boards (pipelines) como sub-sub-itens dinâmicos -->
+                <div
+                  v-if="child.boards && boardLinks.length"
+                  class="flex flex-col gap-0.5 pl-3 ml-3 border-l border-slate-100"
+                >
+                  <NuxtLink
+                    v-for="b in boardLinks"
+                    :key="b.key"
+                    :to="`/admin/pipelines?board=${b.key}`"
+                    class="flex items-center gap-2 h-[32px] px-3 rounded-lg text-[13px] font-medium no-underline transition-all"
+                    :class="
+                      boardActive(b.key)
+                        ? 'bg-brand-soft text-brand'
+                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                    "
+                  >
+                    <span class="w-1.5 h-1.5 rounded-full bg-current opacity-60 shrink-0"></span>
+                    {{ b.label }}
+                  </NuxtLink>
+                </div>
+              </template>
             </div>
           </div>
 

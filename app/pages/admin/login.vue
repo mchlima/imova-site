@@ -27,7 +27,7 @@ async function signIn() {
   try {
     // POST /auth/login — o backend valida e devolve um cookie de sessão httpOnly.
     await login(email.value, password.value)
-    await navigateTo('/admin/oportunidades')
+    await navigateTo('/admin/pipelines')
   } catch {
     error.value = true
     errorMsg.value = 'E-mail ou senha incorretos.'

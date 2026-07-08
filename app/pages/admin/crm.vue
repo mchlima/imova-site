@@ -141,7 +141,7 @@ const tempOptions = computed(() => ({
     <PageHeader title="CRM" subtitle="Visão geral das oportunidades e follow-ups.">
       <template #actions>
         <NuxtLink
-          to="/admin/oportunidades"
+          to="/admin/pipelines"
           class="inline-flex items-center gap-1.5 h-[38px] px-4 bg-white border border-slate-300 text-slate-700 text-[13px] font-semibold rounded-lg no-underline hover:bg-slate-100"
         >
           <AdminIcon name="opportunities" :size="16" /> Ver oportunidades
@@ -237,7 +237,7 @@ const tempOptions = computed(() => ({
       <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
         <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100">
           <h2 class="text-[14px] font-bold text-slate-900 m-0">Oportunidades recentes</h2>
-          <NuxtLink to="/admin/oportunidades" class="text-[13px] font-semibold text-brand no-underline">Ver todos →</NuxtLink>
+          <NuxtLink to="/admin/pipelines" class="text-[13px] font-semibold text-brand no-underline">Ver todos →</NuxtLink>
         </div>
         <table class="w-full border-collapse">
           <tbody>
@@ -245,7 +245,7 @@ const tempOptions = computed(() => ({
               v-for="l in recent"
               :key="l.id"
               class="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer"
-              @click="navigateTo(`/admin/oportunidades?oportunidade=${l.id}`)"
+              @click="navigateTo(`/admin/pipelines?oportunidade=${l.id}`)"
             >
               <td class="py-3 px-4">
                 <div class="text-[14px] font-semibold text-slate-900">{{ l.contact.name }}</div>

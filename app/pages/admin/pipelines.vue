@@ -12,6 +12,7 @@ definePageMeta({ layout: 'admin', middleware: 'auth' })
 useHead({ meta: [{ name: 'robots', content: 'noindex, nofollow' }] })
 
 const apiBase = useRuntimeConfig().public.apiBase
+const route = useRoute()
 
 // funil como dado (GET /stages) — nada de status hardcoded. Com 2+ boards, cada um
 // tem seus estágios: filtramos por board ativo (kanbanStagesFor / stagesFor).
@@ -19,7 +20,7 @@ const { loadStages, kanbanStagesFor, stagesFor, stageBadgeStyle } = useStages()
 
 // boards (pipelines) — abas do quadro. Ownership leve: abre no board do usuário,
 // mas ninguém fica bloqueado de navegar nos outros.
-const { pipelines, loadPipelines, updatePipeline } = usePipelines()
+const { pipelines, loadPipelines } = usePipelines()
 const { user } = useAuth()
 const { users, loadUsers } = useUsers()
 
@@ -30,12 +31,28 @@ const activeBoard = computed(() => pipelines.value.find((p) => p.id === activePi
 const activeKanbanStages = computed(() => kanbanStagesFor(activePipelineId.value))
 const activeStages = computed(() => stagesFor(activePipelineId.value))
 
-// define o board inicial: o board do usuário logado (dono) ou o primeiro.
+// define o board inicial: por ?board=<key> (menu), senão board do usuário (dono), senão o 1º.
 function pickInitialBoard() {
+  const wantedKey = route.query.board as string | undefined
+  if (wantedKey) {
+    const byKey = pipelines.value.find((p) => p.key === wantedKey)
+    if (byKey) {
+      activePipelineId.value = byKey.id
+      return
+    }
+  }
   if (activePipelineId.value && pipelines.value.some((p) => p.id === activePipelineId.value)) return
   const mine = user.value ? orderedBoards.value.find((p) => p.ownerUserId === user.value!.id) : null
   activePipelineId.value = mine?.id || orderedBoards.value[0]?.id || ''
 }
+// navegação pelo menu troca só a query (?board=) — reflete no board ativo
+watch(
+  () => route.query.board,
+  (key) => {
+    const byKey = key ? pipelines.value.find((p) => p.key === key) : null
+    if (byKey) activePipelineId.value = byKey.id
+  },
+)
 
 const opportunities = ref<Opportunity[]>([])
 const loading = ref(true)
@@ -82,12 +99,12 @@ function onOpportunityMoved(opportunity: Opportunity) {
   drawerOpen.value = false
 }
 
-// dono do board (ownership leve): define/remove pelo select ao lado das abas.
+// nome do dono do board (badge nas abas). Definir o dono é feito nas configurações do board.
 const ownerName = (uid: string | null) => users.value.find((u) => u.id === uid)?.name || ''
-async function setOwner(uid: string) {
-  if (!activeBoard.value) return
-  await updatePipeline(activeBoard.value.id, { ownerUserId: uid || null })
-}
+// link para as configurações do board ativo (dono + etapas do funil)
+const settingsLink = computed(() =>
+  activeBoard.value ? `/admin/configuracoes?tab=funnel&board=${activeBoard.value.id}` : '/admin/configuracoes',
+)
 
 // criação manual (NewOpportunityDrawer)
 const newOppOpen = ref(false)
@@ -138,7 +155,7 @@ onMounted(async () => {
   await loadPipelines()
   pickInitialBoard()
   await loadOpportunities()
-  // deep-link vindo do Follow-up: /admin/oportunidades?oportunidade=<id> abre o drawer.
+  // deep-link vindo do Follow-up: /admin/pipelines?oportunidade=<id> abre o drawer.
   // Ativa o board dono da oportunidade antes de abrir o detalhe.
   const wanted = useRoute().query.oportunidade as string | undefined
   const target = wanted ? opportunities.value.find((l) => l.id === wanted) : null
@@ -305,11 +322,11 @@ async function persistBoard() {
   <div>
     <div class="p-4 sm:p-6">
       <PageHeader
-        title="Oportunidades"
-        subtitle="Cada board é um funil. Receba e qualifique na Captação; repasse para o board da Corretora."
+        title="Pipelines"
+        subtitle="Cada pipeline é um funil. Qualifique na Qualificação e repasse para a Corretagem."
       />
 
-      <!-- SELETOR DE BOARDS (abas) + dono do board -->
+      <!-- SELETOR DE PIPELINES (abas) + configurar pipeline -->
       <div v-if="orderedBoards.length" class="flex items-center gap-3 flex-wrap mb-[18px]">
         <div class="inline-flex items-center bg-slate-100 rounded-[10px] p-0.5">
           <button
@@ -328,24 +345,25 @@ async function persistBoard() {
             <span
               v-if="b.ownerUserId"
               class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-brand-soft text-brand text-[10.5px] font-bold"
-              :title="'Board de ' + ownerName(b.ownerUserId)"
+              :title="'Pipeline de ' + ownerName(b.ownerUserId)"
               >{{ (ownerName(b.ownerUserId) || '?').charAt(0).toUpperCase() }}</span
             >
           </button>
         </div>
 
-        <!-- dono do board ativo (ownership leve, não bloqueia navegação) -->
-        <label v-if="activeBoard" class="inline-flex items-center gap-1.5 text-[12.5px] text-slate-500">
-          <span>Dono deste board:</span>
-          <select
-            class="h-[30px] pl-2 pr-6 text-[12.5px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-[7px] outline-none cursor-pointer focus:border-brand"
-            :value="activeBoard.ownerUserId || ''"
-            @change="setOwner(($event.target as HTMLSelectElement).value)"
-          >
-            <option value="">Sem dono</option>
-            <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option>
-          </select>
-        </label>
+        <!-- configurações do pipeline ativo (dono + etapas do funil) -->
+        <NuxtLink
+          v-if="activeBoard"
+          :to="settingsLink"
+          class="inline-flex items-center gap-1.5 h-[34px] px-3 bg-white border border-slate-200 text-slate-600 text-[13px] font-semibold rounded-[8px] no-underline transition-all hover:bg-slate-50 hover:text-slate-800"
+          :title="'Configurar dono e etapas de ' + activeBoard.label"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+          Configurar pipeline
+        </NuxtLink>
       </div>
 
       <!-- BARRA: busca + data (fora) + botão de filtros (painel) -->

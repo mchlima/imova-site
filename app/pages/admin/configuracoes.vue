@@ -47,22 +47,38 @@ const TYPE_LABELS: Record<string, string> = {
 }
 const TYPES = Object.keys(TYPE_LABELS)
 
+const route = useRoute()
 const sections = ref<Section[]>([])
 const stages = ref<Stage[]>([])
 const loading = ref(true)
-const tab = ref<'fields' | 'funnel'>('fields')
+// abre na aba pedida pela URL (ex.: vindo do botão "Configurar pipeline")
+const tab = ref<'fields' | 'funnel'>(route.query.tab === 'funnel' ? 'funnel' : 'fields')
 
-// caches compartilhados usados por oportunidades/crm/drawer — mantê-los em dia
+// caches compartilhados usados por pipelines/crm/drawer — mantê-los em dia
 const { loadStages } = useStages()
 const { loadFieldDefinitions } = useFieldDefinitions()
-// boards: o editor de funil trabalha um board por vez (padrão = Captação)
-const { pipelines, loadPipelines, defaultPipeline } = usePipelines()
+const { users, loadUsers } = useUsers()
+// boards: o editor de funil trabalha um board por vez (padrão = Qualificação)
+const { pipelines, loadPipelines, updatePipeline, defaultPipeline } = usePipelines()
 const funnelBoardId = ref('')
+// board selecionado no editor de funil (define dono + etapas)
+const funnelBoard = computed(() => pipelines.value.find((p) => p.id === funnelBoardId.value) || null)
 // estágios do board selecionado (o funil é por board)
 const funnelStages = computed(() => stages.value.filter((s) => s.pipelineId === funnelBoardId.value))
-watch(defaultPipeline, (p) => {
-  if (!funnelBoardId.value && p) funnelBoardId.value = p.id
-})
+// board inicial do editor: ?board=<id> (vindo da página de pipelines) ou o padrão
+function pickFunnelBoard() {
+  if (funnelBoardId.value && pipelines.value.some((p) => p.id === funnelBoardId.value)) return
+  const wanted = route.query.board as string | undefined
+  funnelBoardId.value =
+    (wanted && pipelines.value.find((p) => p.id === wanted)?.id) || defaultPipeline.value?.id || ''
+}
+watch([pipelines, defaultPipeline], pickFunnelBoard)
+
+// define/remove o dono do board (ownership leve)
+async function setFunnelOwner(uid: string) {
+  if (!funnelBoard.value) return
+  await updatePipeline(funnelBoard.value.id, { ownerUserId: uid || null })
+}
 
 async function loadAll() {
   loading.value = true
@@ -71,9 +87,11 @@ async function loadAll() {
       $fetch<Section[]>('/field-definitions/all', opts),
       $fetch<Stage[]>('/stages', opts),
       loadPipelines(true),
+      loadUsers(),
     ])
     sections.value = s
     stages.value = st
+    pickFunnelBoard()
     // invalida os caches globais para o resto do app refletir sem reload duro
     await Promise.all([loadStages(true), loadFieldDefinitions(true)])
   } finally {
@@ -299,6 +317,22 @@ const badgeStyle = (c: string) => ({ color: c, backgroundColor: c + '1F' })
             </select>
             <button class="h-[36px] px-3.5 bg-slate-900 text-white text-[13px] font-semibold rounded-lg cursor-pointer border-none hover:bg-slate-800" @click="newStage">+ Novo estágio</button>
           </div>
+        </div>
+
+        <!-- DONO DO PIPELINE (ownership leve: abre no board da pessoa, sem bloquear os outros) -->
+        <div v-if="funnelBoard" :class="card" class="flex items-center gap-3 px-4 py-3 mb-3 flex-wrap">
+          <div class="flex-1 min-w-[200px]">
+            <div class="text-[13px] font-semibold text-slate-800">Dono do pipeline</div>
+            <div class="text-[12px] text-slate-400">Abre por padrão para esta pessoa. Não bloqueia o acesso dos demais.</div>
+          </div>
+          <select
+            class="h-[36px] pl-3 pr-8 text-[13px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg outline-none cursor-pointer focus:border-brand"
+            :value="funnelBoard.ownerUserId || ''"
+            @change="setFunnelOwner(($event.target as HTMLSelectElement).value)"
+          >
+            <option value="">Sem dono</option>
+            <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option>
+          </select>
         </div>
 
         <div :class="card" class="divide-y divide-slate-50">
