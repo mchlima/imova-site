@@ -298,7 +298,7 @@ async function persistBoard() {
 </script>
 
 <template>
-  <div :class="view === 'kanban' ? 'h-[calc(100vh-56px)] flex flex-col' : ''">
+  <div :class="view === 'kanban' ? 'h-[calc(100vh-28px)] flex flex-col' : ''">
     <div class="p-4 sm:p-6" :class="view === 'kanban' ? 'flex-1 min-h-0 flex flex-col' : ''">
       <PageHeader
         :title="activeBoard ? `Pipeline · ${activeBoard.label}` : 'Pipelines'"
