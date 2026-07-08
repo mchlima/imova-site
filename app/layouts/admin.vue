@@ -233,7 +233,7 @@ async function signOut() {
     </aside>
 
     <!-- ÁREA PRINCIPAL -->
-    <div class="lg:pl-60 flex flex-col min-h-screen">
+    <div class="lg:pl-60 flex flex-col h-screen overflow-hidden">
       <!-- TOPBAR -->
       <header
         class="sticky top-0 z-20 h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6"
@@ -323,7 +323,7 @@ async function signOut() {
         </ClientOnly>
       </header>
 
-      <main class="flex-1">
+      <main class="flex-1 min-h-0 overflow-y-auto">
         <slot />
       </main>
     </div>
