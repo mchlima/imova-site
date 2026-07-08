@@ -41,6 +41,8 @@ const contactId = ref('')
 const newContact = reactive({ name: '', channels: [] as DraftChannel[] })
 const stageKey = ref('')
 const temperature = ref('Sem classificação')
+// origem do lead — campo aberto (texto livre); vazio cai em 'manual'
+const source = ref('')
 const assignees = ref<Assignee[]>([])
 // valores dos campos personalizados, aninhados por seção { sectionKey: { fieldKey } }
 const fieldValues = reactive<Record<string, Record<string, unknown>>>({})
@@ -79,6 +81,7 @@ function reset() {
   newContact.channels = []
   stageKey.value = boardStages.value[0]?.key || ''
   temperature.value = 'Sem classificação'
+  source.value = ''
   assignees.value = []
   for (const k of Object.keys(fieldValues)) delete fieldValues[k]
   error.value = ''
@@ -109,7 +112,7 @@ async function create() {
   saving.value = true
   error.value = ''
   const body: Record<string, unknown> = {
-    source: 'manual',
+    source: source.value.trim() || 'manual',
     pipelineId: props.pipelineId || undefined,
     stageKey: stageKey.value || undefined,
     temperature: temperature.value,
@@ -216,6 +219,10 @@ const seg = 'h-[34px] px-3 text-[13px] font-semibold rounded-md cursor-pointer b
           <div class="bg-white border border-slate-200 rounded-[10px] p-[18px]">
             <div :class="block" class="mb-3">Funil</div>
             <div class="flex flex-col gap-3.5">
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-[13px] font-semibold text-slate-700">Origem</span>
+                <input v-model="source" :class="input" class="!w-[210px]" placeholder="Ex.: Indicação, Portal…" />
+              </div>
               <div class="flex items-center justify-between gap-3">
                 <span class="text-[13px] font-semibold text-slate-700">Temperatura</span>
                 <ChipSelect v-model="temperature" :options="tempOptions" />
