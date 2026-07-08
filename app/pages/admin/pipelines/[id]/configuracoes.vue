@@ -29,15 +29,15 @@ const { users, loadUsers } = useUsers()
 const { pipelines, loadPipelines, updatePipeline, defaultPipeline } = usePipelines()
 
 const funnelBoardId = ref('')
-// o board vem da ROTA (/admin/pipelines/<key>/configuracoes) — config exclusiva dele.
-const boardKey = computed(() => route.params.board as string)
+// o board vem da ROTA (/admin/pipelines/<id>/configuracoes) — config exclusiva dele.
+const boardId = computed(() => route.params.id as string)
 const funnelBoard = computed(() => pipelines.value.find((p) => p.id === funnelBoardId.value) || null)
 const funnelStages = computed(() => stages.value.filter((s) => s.pipelineId === funnelBoardId.value))
 function pickFunnelBoard() {
-  const byKey = pipelines.value.find((p) => p.key === boardKey.value)
-  funnelBoardId.value = byKey?.id || defaultPipeline.value?.id || ''
+  const byId = pipelines.value.find((p) => p.id === boardId.value)
+  funnelBoardId.value = byId?.id || defaultPipeline.value?.id || ''
 }
-watch([pipelines, defaultPipeline, boardKey], pickFunnelBoard)
+watch([pipelines, defaultPipeline, boardId], pickFunnelBoard)
 
 // define/remove o dono do board (ownership leve)
 async function setFunnelOwner(uid: string) {
@@ -45,39 +45,31 @@ async function setFunnelOwner(uid: string) {
   await updatePipeline(funnelBoard.value.id, { ownerUserId: uid || null })
 }
 
-// nome (label) + key editáveis
+// nome (label) editável — a key fica no dado (uso futuro), fora das configurações.
 const editName = ref('')
-const editKey = ref('')
 const savingMeta = ref(false)
 const metaError = ref('')
 watch(
   funnelBoard,
   (b) => {
     editName.value = b?.label || ''
-    editKey.value = b?.key || ''
   },
   { immediate: true },
 )
 const metaDirty = computed(
-  () =>
-    !!funnelBoard.value &&
-    (editName.value.trim() !== funnelBoard.value.label || editKey.value.trim() !== funnelBoard.value.key),
+  () => !!funnelBoard.value && editName.value.trim() !== funnelBoard.value.label,
 )
 async function saveMeta() {
   if (!funnelBoard.value || !metaDirty.value) return
   const name = editName.value.trim()
-  const key = editKey.value.trim()
-  if (!name || !key) {
-    metaError.value = 'Nome e key são obrigatórios.'
+  if (!name) {
+    metaError.value = 'O nome é obrigatório.'
     return
   }
   savingMeta.value = true
   metaError.value = ''
-  const keyChanged = key !== funnelBoard.value.key
   try {
-    await updatePipeline(funnelBoard.value.id, { label: name, key })
-    // key mudou → a URL do pipeline mudou; vai pra rota nova
-    if (keyChanged) await navigateTo(`/admin/pipelines/${key}/configuracoes`)
+    await updatePipeline(funnelBoard.value.id, { label: name })
   } catch (e: unknown) {
     const msg = (e as { data?: { message?: string | string[] } })?.data?.message
     metaError.value = (Array.isArray(msg) ? msg[0] : msg) || 'Não foi possível salvar.'
@@ -162,7 +154,7 @@ const badgeStyle = (c: string) => ({ color: c, backgroundColor: c + '1F' })
     >
       <template v-if="funnelBoard" #actions>
         <NuxtLink
-          :to="`/admin/pipelines/${funnelBoard.key}`"
+          :to="`/admin/pipelines/${funnelBoard.id}`"
           class="inline-flex items-center gap-1.5 h-[38px] px-4 bg-white border border-slate-300 text-slate-700 text-[13px] font-semibold rounded-lg no-underline hover:bg-slate-100"
         >
           ← Voltar ao pipeline
@@ -177,16 +169,9 @@ const badgeStyle = (c: string) => ({ color: c, backgroundColor: c + '1F' })
       <div v-if="funnelBoard" :class="card" class="p-4 mb-4">
         <div class="text-[13px] font-bold text-slate-800 mb-3">Pipeline</div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-          <div>
-            <label :class="label">Nome</label>
-            <input v-model="editName" :class="input" placeholder="ex: Corretagem" />
-          </div>
-          <div>
-            <label :class="label">Key (identificador na URL)</label>
-            <input v-model="editKey" :class="input" placeholder="ex: corretagem" />
-            <p class="text-[11px] text-amber-600 mt-1">Mudar a key altera o endereço do pipeline (/admin/pipelines/&lt;key&gt;).</p>
-          </div>
+        <div class="mb-3">
+          <label :class="label">Nome</label>
+          <input v-model="editName" :class="input" class="!max-w-[360px]" placeholder="ex: Corretagem" />
         </div>
 
         <div class="flex items-end gap-3 flex-wrap pt-3 border-t border-slate-100">

@@ -29,14 +29,14 @@ const activeBoard = computed(() => pipelines.value.find((p) => p.id === activePi
 const activeKanbanStages = computed(() => kanbanStagesFor(activePipelineId.value))
 const activeStages = computed(() => stagesFor(activePipelineId.value))
 
-// o pipeline vem da ROTA (/admin/pipelines/<key>). O usuário troca pelo menu.
-const boardKey = computed(() => route.params.board as string)
+// o pipeline vem da ROTA (/admin/pipelines/<id>). O usuário troca pelo menu.
+const boardId = computed(() => route.params.id as string)
 function pickInitialBoard() {
-  const byKey = pipelines.value.find((p) => p.key === boardKey.value)
-  activePipelineId.value = byKey?.id || orderedBoards.value[0]?.id || ''
+  const byId = pipelines.value.find((p) => p.id === boardId.value)
+  activePipelineId.value = byId?.id || orderedBoards.value[0]?.id || ''
 }
 // navegação pelo menu troca o param da rota — reflete no board ativo
-watch([pipelines, boardKey], pickInitialBoard)
+watch([pipelines, boardId], pickInitialBoard)
 
 const opportunities = ref<Opportunity[]>([])
 const loading = ref(true)
@@ -85,7 +85,7 @@ function onOpportunityMoved(opportunity: Opportunity) {
 
 // link para as configurações do pipeline ativo (dono + etapas), na rota do próprio pipeline
 const settingsLink = computed(() =>
-  activeBoard.value ? `/admin/pipelines/${activeBoard.value.key}/configuracoes` : '/admin/pipelines',
+  activeBoard.value ? `/admin/pipelines/${activeBoard.value.id}/configuracoes` : '/admin/pipelines',
 )
 
 // criação manual (NewOpportunityDrawer)

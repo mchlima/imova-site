@@ -15,7 +15,7 @@ onMounted(async () => {
   await loadPipelines()
   const ordered = [...pipelines.value].sort((a, b) => a.order - b.order)
 
-  let targetKey = ''
+  let targetId = ''
   const oppId = route.query.oportunidade as string | undefined
   if (oppId) {
     try {
@@ -23,18 +23,18 @@ onMounted(async () => {
         baseURL: apiBase,
         credentials: 'include',
       })
-      targetKey = pipelines.value.find((p) => p.id === opp.pipelineId)?.key || ''
+      targetId = pipelines.value.find((p) => p.id === opp.pipelineId)?.id || ''
     } catch {
       /* cai no board padrão abaixo */
     }
   }
-  if (!targetKey) {
+  if (!targetId) {
     const mine = user.value ? ordered.find((p) => p.ownerUserId === user.value!.id) : null
-    targetKey = mine?.key || ordered[0]?.key || ''
+    targetId = mine?.id || ordered[0]?.id || ''
   }
-  if (targetKey) {
+  if (targetId) {
     const q = oppId ? `?oportunidade=${oppId}` : ''
-    await navigateTo(`/admin/pipelines/${targetKey}${q}`, { replace: true })
+    await navigateTo(`/admin/pipelines/${targetId}${q}`, { replace: true })
   }
 })
 </script>

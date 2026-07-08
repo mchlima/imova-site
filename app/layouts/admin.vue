@@ -6,10 +6,10 @@ const route = useRoute()
 const { pipelines, loadPipelines } = usePipelines()
 loadPipelines()
 const boardLinks = computed(() =>
-  [...pipelines.value].sort((a, b) => a.order - b.order).map((p) => ({ label: p.label, key: p.key })),
+  [...pipelines.value].sort((a, b) => a.order - b.order).map((p) => ({ label: p.label, id: p.id })),
 )
-const boardActive = (key: string) =>
-  route.path === `/admin/pipelines/${key}` || route.path.startsWith(`/admin/pipelines/${key}/`)
+const boardActive = (id: string) =>
+  route.path === `/admin/pipelines/${id}` || route.path.startsWith(`/admin/pipelines/${id}/`)
 
 interface NavItem {
   label: string
@@ -177,11 +177,11 @@ async function signOut() {
                   >
                     <NuxtLink
                       v-for="b in boardLinks"
-                      :key="b.key"
-                      :to="`/admin/pipelines/${b.key}`"
+                      :key="b.id"
+                      :to="`/admin/pipelines/${b.id}`"
                       class="flex items-center gap-2 h-[32px] px-3 rounded-lg text-[13px] font-medium no-underline transition-all"
                       :class="
-                        boardActive(b.key)
+                        boardActive(b.id)
                           ? 'bg-brand-soft text-brand'
                           : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
                       "
