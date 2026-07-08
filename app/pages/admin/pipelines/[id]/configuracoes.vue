@@ -122,10 +122,10 @@ function editStage(s: Stage) {
   Object.assign(stm, { open: true, editing: s.id, key: s.key, label: s.label, color: s.color || '#1E40AF', inKanban: s.inKanban, isWon: s.isWon, isLost: s.isLost })
 }
 async function saveStage() {
-  if (!stm.label.trim() || (!stm.editing && !stm.key.trim())) return
+  if (!stm.label.trim() || !stm.key.trim()) return
   const base = { label: stm.label, color: stm.color, inKanban: stm.inKanban, isWon: stm.isWon, isLost: stm.isLost }
   if (stm.editing) {
-    await $fetch(`/stages/${stm.editing}`, { ...opts, method: 'PATCH', body: base })
+    await $fetch(`/stages/${stm.editing}`, { ...opts, method: 'PATCH', body: { ...base, key: stm.key } })
   } else {
     // cria no pipeline desta página
     await $fetch('/stages', { ...opts, method: 'POST', body: { ...base, key: stm.key, pipelineId: funnelBoardId.value || undefined } })
@@ -267,9 +267,12 @@ const badgeStyle = (c: string) => ({ color: c, backgroundColor: c + '1F' })
       <div class="bg-white rounded-xl w-full max-w-[400px] p-5" @click.stop>
         <h3 class="text-[15px] font-bold text-slate-900 m-0 mb-4">{{ stm.editing ? 'Editar estágio' : 'Novo estágio' }}</h3>
         <div class="flex flex-col gap-3">
-          <div v-if="!stm.editing">
+          <div>
             <label :class="label">Chave (key)</label>
             <input v-model="stm.key" :class="input" placeholder="ex: Negociando" />
+            <p v-if="stm.editing" class="text-[11px] text-amber-600 mt-1">
+              Mudar a key move as oportunidades deste estágio para a nova chave automaticamente.
+            </p>
           </div>
           <div class="grid grid-cols-[1fr_auto] gap-3 items-end">
             <div>
