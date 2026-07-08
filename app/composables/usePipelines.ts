@@ -27,8 +27,8 @@ export function usePipelines() {
     return pipelines.value
   }
 
-  // Atualiza um board (rótulo/ordem/dono). Devolve a lista atualizada.
-  async function updatePipeline(id: string, patch: Partial<Pick<Pipeline, 'label' | 'order' | 'ownerUserId'>>) {
+  // Atualiza um board (rótulo/key/ordem/dono). Devolve a lista atualizada.
+  async function updatePipeline(id: string, patch: Partial<Pick<Pipeline, 'label' | 'key' | 'order' | 'ownerUserId'>>) {
     pipelines.value = await $fetch<Pipeline[]>(`/pipelines/${id}`, {
       baseURL: apiBase,
       method: 'PATCH',

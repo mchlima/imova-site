@@ -45,6 +45,47 @@ async function setFunnelOwner(uid: string) {
   await updatePipeline(funnelBoard.value.id, { ownerUserId: uid || null })
 }
 
+// nome (label) + key editáveis
+const editName = ref('')
+const editKey = ref('')
+const savingMeta = ref(false)
+const metaError = ref('')
+watch(
+  funnelBoard,
+  (b) => {
+    editName.value = b?.label || ''
+    editKey.value = b?.key || ''
+  },
+  { immediate: true },
+)
+const metaDirty = computed(
+  () =>
+    !!funnelBoard.value &&
+    (editName.value.trim() !== funnelBoard.value.label || editKey.value.trim() !== funnelBoard.value.key),
+)
+async function saveMeta() {
+  if (!funnelBoard.value || !metaDirty.value) return
+  const name = editName.value.trim()
+  const key = editKey.value.trim()
+  if (!name || !key) {
+    metaError.value = 'Nome e key são obrigatórios.'
+    return
+  }
+  savingMeta.value = true
+  metaError.value = ''
+  const keyChanged = key !== funnelBoard.value.key
+  try {
+    await updatePipeline(funnelBoard.value.id, { label: name, key })
+    // key mudou → a URL do pipeline mudou; vai pra rota nova
+    if (keyChanged) await navigateTo(`/admin/pipelines/${key}/configuracoes`)
+  } catch (e: unknown) {
+    const msg = (e as { data?: { message?: string | string[] } })?.data?.message
+    metaError.value = (Array.isArray(msg) ? msg[0] : msg) || 'Não foi possível salvar.'
+  } finally {
+    savingMeta.value = false
+  }
+}
+
 async function loadAll() {
   loading.value = true
   try {
@@ -132,20 +173,46 @@ const badgeStyle = (c: string) => ({ color: c, backgroundColor: c + '1F' })
     <div v-if="loading" class="text-slate-400 text-[14px] py-12 text-center">Carregando…</div>
 
     <div v-else class="max-w-[840px]">
-      <!-- DONO DO PIPELINE (ownership leve: abre no board da pessoa, sem bloquear os outros) -->
-      <div v-if="funnelBoard" :class="card" class="flex items-center gap-3 px-4 py-3 mb-4 flex-wrap">
-        <div class="flex-1 min-w-[200px]">
-          <div class="text-[13px] font-semibold text-slate-800">Dono do pipeline</div>
-          <div class="text-[12px] text-slate-400">Abre por padrão para esta pessoa. Não bloqueia o acesso dos demais.</div>
+      <!-- DADOS DO PIPELINE: nome + key (Salvar) e dono (auto-salva) -->
+      <div v-if="funnelBoard" :class="card" class="p-4 mb-4">
+        <div class="text-[13px] font-bold text-slate-800 mb-3">Pipeline</div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label :class="label">Nome</label>
+            <input v-model="editName" :class="input" placeholder="ex: Corretagem" />
+          </div>
+          <div>
+            <label :class="label">Key (identificador na URL)</label>
+            <input v-model="editKey" :class="input" placeholder="ex: corretagem" />
+            <p class="text-[11px] text-amber-600 mt-1">Mudar a key altera o endereço do pipeline (/admin/pipelines/&lt;key&gt;).</p>
+          </div>
         </div>
-        <select
-          class="h-[36px] pl-3 pr-8 text-[13px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg outline-none cursor-pointer focus:border-brand"
-          :value="funnelBoard.ownerUserId || ''"
-          @change="setFunnelOwner(($event.target as HTMLSelectElement).value)"
-        >
-          <option value="">Sem dono</option>
-          <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option>
-        </select>
+
+        <div class="flex items-end gap-3 flex-wrap pt-3 border-t border-slate-100">
+          <div class="flex-1 min-w-[200px]">
+            <label :class="label">Dono do pipeline</label>
+            <select
+              class="w-full h-[38px] pl-3 pr-8 text-[13px] font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg outline-none cursor-pointer focus:border-brand"
+              :value="funnelBoard.ownerUserId || ''"
+              @change="setFunnelOwner(($event.target as HTMLSelectElement).value)"
+            >
+              <option value="">Sem dono</option>
+              <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option>
+            </select>
+            <div class="text-[11.5px] text-slate-400 mt-1">Abre por padrão pra esta pessoa; não bloqueia os demais.</div>
+          </div>
+          <div class="flex items-center gap-2.5 ml-auto">
+            <span v-if="metaError" class="text-[12px] text-red-600 font-medium">{{ metaError }}</span>
+            <button
+              class="h-[38px] px-4 bg-brand text-white text-[13px] font-semibold rounded-lg cursor-pointer border-none hover:bg-brand-dark disabled:opacity-50 disabled:cursor-default"
+              :disabled="!metaDirty || savingMeta"
+              @click="saveMeta"
+            >
+              {{ savingMeta ? 'Salvando…' : 'Salvar' }}
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- FUNIL -->
