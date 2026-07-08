@@ -11,7 +11,8 @@ import {
 
 // Drawer de CRIAÇÃO de oportunidade. Estado local; POST /opportunities ao criar.
 // Genérico: as seções/campos vêm das definições do tenant (sem domínio hardcoded).
-const props = defineProps<{ modelValue: boolean }>()
+// pipelineId = board onde criar (vem do board ativo do quadro).
+const props = defineProps<{ modelValue: boolean; pipelineId?: string }>()
 const emit = defineEmits<{ 'update:modelValue': [boolean]; created: [Opportunity] }>()
 
 const apiBase = useRuntimeConfig().public.apiBase
@@ -21,14 +22,15 @@ const open = computed({
   set: (v) => emit('update:modelValue', v),
 })
 
-// funil e campos como dado
-const { loadStages, orderedStages } = useStages()
+// funil e campos como dado — estágios escopados ao board de destino
+const { loadStages, stagesFor } = useStages()
 const { sections, loadFieldDefinitions } = useFieldDefinitions()
 loadStages()
 loadFieldDefinitions()
 
+const boardStages = computed(() => stagesFor(props.pipelineId))
 const stageOptions = computed(() =>
-  orderedStages.value.map((s) => ({ value: s.key, label: s.label, color: s.color })),
+  boardStages.value.map((s) => ({ value: s.key, label: s.label, color: s.color })),
 )
 const tempOptions = TEMPS.map((t) => ({ value: t, label: t, color: TEMP_HEX[t] || '#94A3B8' }))
 
@@ -75,7 +77,7 @@ function reset() {
   contactId.value = ''
   newContact.name = ''
   newContact.channels = []
-  stageKey.value = orderedStages.value[0]?.key || ''
+  stageKey.value = boardStages.value[0]?.key || ''
   temperature.value = 'Sem classificação'
   assignees.value = []
   for (const k of Object.keys(fieldValues)) delete fieldValues[k]
@@ -108,6 +110,7 @@ async function create() {
   error.value = ''
   const body: Record<string, unknown> = {
     source: 'manual',
+    pipelineId: props.pipelineId || undefined,
     stageKey: stageKey.value || undefined,
     temperature: temperature.value,
     fields: fieldValues,

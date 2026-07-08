@@ -17,8 +17,19 @@ import {
   dueState,
 } from '~/utils/opportunityModel'
 
-const props = defineProps<{ modelValue: boolean; opportunity: Opportunity | null }>()
-const emit = defineEmits<{ 'update:modelValue': [boolean]; updated: [Opportunity] }>()
+import type { Pipeline } from '~/composables/usePipelines'
+
+const props = defineProps<{
+  modelValue: boolean
+  opportunity: Opportunity | null
+  // boards disponíveis (para repassar a oportunidade a outro board)
+  boards?: Pipeline[]
+}>()
+const emit = defineEmits<{
+  'update:modelValue': [boolean]
+  updated: [Opportunity]
+  moved: [Opportunity]
+}>()
 
 const apiBase = useRuntimeConfig().public.apiBase
 const open = computed({
@@ -28,9 +39,41 @@ const open = computed({
 const sel = computed(() => props.opportunity)
 const fmt = fmtBRL
 
-// funil como dado — opções/cores de status vêm de GET /stages
-const { loadStages, orderedStages, stageBadgeStyle, stageLabel } = useStages()
+// funil como dado — opções/cores de status vêm de GET /stages. Com 2+ boards, o
+// seletor de status mostra só os estágios do board DESTA oportunidade.
+const { loadStages, stagesFor, stageMap, stageBadgeStyle, stageLabel } = useStages()
 loadStages()
+
+// estágios do board da oportunidade aberta
+const oppStages = computed(() => stagesFor(sel.value?.pipelineId))
+// outros boards (destinos de repasse), na ordem
+const otherBoards = computed(() =>
+  [...(props.boards ?? [])]
+    .sort((a, b) => a.order - b.order)
+    .filter((b) => b.id !== sel.value?.pipelineId),
+)
+const currentBoard = computed(() => props.boards?.find((b) => b.id === sel.value?.pipelineId) || null)
+
+// Repasse: move a oportunidade para outro board (cai no 1º estágio do destino).
+const moving = ref(false)
+async function moveToBoard(target: Pipeline) {
+  const id = sel.value?.id
+  if (!id || moving.value) return
+  moving.value = true
+  try {
+    const updated = await $fetch<RawOpportunity>(`/opportunities/${id}/move-pipeline`, {
+      baseURL: apiBase,
+      method: 'POST',
+      credentials: 'include',
+      body: { pipelineId: target.id },
+    })
+    emit('moved', mapOpportunity(updated))
+  } catch {
+    /* o pai recarrega se precisar */
+  } finally {
+    moving.value = false
+  }
+}
 
 // campos personalizados (qualificação, preferências) — vêm de GET /field-definitions
 const { sections: fieldSections, loadFieldDefinitions } = useFieldDefinitions()
@@ -112,9 +155,12 @@ function patchField(sectionKey: string, fieldKey: string, value: unknown) {
 }
 
 const LOSS_REASONS = ['Sem retorno', 'Fora do perfil', 'Comprou com outro', 'Sem interesse', 'Outro']
+// estágio de perda é dado (isLost no funil), não string fixa — cada board tem o seu.
+const isLossKey = (key: string) => !!stageMap.value[key]?.isLost
+const isLostStatus = computed(() => isLossKey(sel.value?.status || ''))
 function onStatusChange(status: string) {
-  // ao sair de "Perdido", limpa o motivo da perda
-  if (status !== 'Perdido' && sel.value?.lossReason) patchSel({ status, lossReason: '' })
+  // ao sair de um estágio de perda, limpa o motivo da perda
+  if (!isLossKey(status) && sel.value?.lossReason) patchSel({ status, lossReason: '' })
   else patchSel({ status })
 }
 
@@ -395,14 +441,14 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
             </div>
 
             <label :class="drawerLabel">Status</label>
-            <div :class="{ 'mb-4': sel.status === 'Perdido' }">
+            <div :class="{ 'mb-4': isLostStatus }">
               <ChipSelect
                 :model-value="sel.status"
-                :options="orderedStages.map((s) => ({ value: s.key, label: s.label, color: s.color }))"
+                :options="oppStages.map((s) => ({ value: s.key, label: s.label, color: s.color }))"
                 @update:model-value="onStatusChange($event)"
               />
             </div>
-            <div v-if="sel.status === 'Perdido'">
+            <div v-if="isLostStatus">
               <label :class="drawerLabel">Motivo da perda</label>
               <select
                 :value="sel.lossReason"
@@ -412,6 +458,32 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
                 <option value="">—</option>
                 <option v-for="r in LOSS_REASONS" :key="r" :value="r">{{ r }}</option>
               </select>
+            </div>
+
+            <!-- REPASSE entre boards (ex.: enviar para o board da Corretora) -->
+            <div v-if="otherBoards.length" class="mt-4 pt-4 border-t border-slate-100">
+              <label :class="drawerLabel">Board</label>
+              <div class="flex items-center gap-2 mb-2.5">
+                <span class="inline-flex items-center h-[24px] px-2.5 rounded-md text-[12px] font-semibold bg-slate-100 text-slate-600">
+                  {{ currentBoard?.label || '—' }}
+                </span>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-for="b in otherBoards"
+                  :key="b.id"
+                  type="button"
+                  :disabled="moving"
+                  class="inline-flex items-center gap-1.5 h-[36px] px-3.5 text-[13px] font-semibold text-white bg-brand rounded-[8px] cursor-pointer border-none transition-all hover:bg-brand-dark disabled:opacity-50"
+                  @click="moveToBoard(b)"
+                >
+                  <span class="text-[15px] leading-none">→</span>
+                  Enviar para {{ b.label }}
+                </button>
+              </div>
+              <p class="text-[11.5px] text-slate-400 mt-2">
+                A oportunidade entra no primeiro estágio do board de destino.
+              </p>
             </div>
           </div>
         </div>

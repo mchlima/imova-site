@@ -88,6 +88,8 @@ export interface Opportunity {
   contact: Contact
   source: string
   status: string
+  // board (pipeline) onde a oportunidade vive. Pode vir null em bases antigas.
+  pipelineId: string | null
   boardOrder: number
   lossReason: string
   temperature: string

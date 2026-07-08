@@ -6,8 +6,15 @@ useHead({ meta: [{ name: 'robots', content: 'noindex, nofollow' }] })
 
 const apiBase = useRuntimeConfig().public.apiBase
 
-// funil como dado (GET /stages)
-const { loadStages, orderedStages, stageColor, stageBadgeStyle } = useStages()
+// funil como dado (GET /stages) — o funil do gráfico é escopado a um board
+const { loadStages, stagesFor, stageColor, stageBadgeStyle } = useStages()
+// boards: o gráfico de funil mostra um board por vez (padrão = Captação)
+const { pipelines, loadPipelines, defaultPipeline } = usePipelines()
+const funnelBoardId = ref('')
+const funnelStages = computed(() => stagesFor(funnelBoardId.value))
+watch(defaultPipeline, (p) => {
+  if (!funnelBoardId.value && p) funnelBoardId.value = p.id
+})
 
 interface PendingActivity {
   id: string
@@ -21,6 +28,7 @@ const loading = ref(true)
 async function load() {
   loading.value = true
   loadStages()
+  loadPipelines()
   try {
     const [l, p] = await Promise.all([
       $fetch<RawOpportunity[]>('/opportunities', { baseURL: apiBase, credentials: 'include' }),
@@ -80,16 +88,17 @@ const stats = computed(() => [
 // ── gráficos (ApexCharts) ──
 const oppFmt = (v: number) => `${v} oportunidade${v === 1 ? '' : 's'}`
 
-// funil por status (barras horizontais, na ordem do funil) — cores/labels do dado
+// funil por status (barras horizontais, na ordem do funil) — cores/labels do dado,
+// escopado ao board selecionado (as keys são únicas entre boards).
 const statusSeries = computed(() => [
-  { name: 'Oportunidades', data: orderedStages.value.map((s) => statusCount(s.key)) },
+  { name: 'Oportunidades', data: funnelStages.value.map((s) => statusCount(s.key)) },
 ])
 const statusOptions = computed(() => ({
   chart: { type: 'bar', toolbar: { show: false }, fontFamily: 'inherit', animations: { speed: 400 } },
   plotOptions: { bar: { horizontal: true, distributed: true, borderRadius: 6, barHeight: '60%' } },
-  colors: orderedStages.value.map((s) => stageColor(s.key)),
+  colors: funnelStages.value.map((s) => stageColor(s.key)),
   dataLabels: { enabled: true, style: { fontWeight: 700, colors: ['#fff'], fontSize: '12px' } },
-  xaxis: { categories: orderedStages.value.map((s) => s.label), labels: { style: { colors: '#94a3b8', fontSize: '12px' } } },
+  xaxis: { categories: funnelStages.value.map((s) => s.label), labels: { style: { colors: '#94a3b8', fontSize: '12px' } } },
   yaxis: { labels: { style: { colors: '#475569', fontSize: '12.5px', fontWeight: 600 } } },
   legend: { show: false },
   grid: { borderColor: '#f1f5f9', xaxis: { lines: { show: true } }, yaxis: { lines: { show: false } } },
@@ -187,8 +196,19 @@ const tempOptions = computed(() => ({
     <!-- gráficos -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
       <div class="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-        <h2 class="text-[14px] font-bold text-slate-900 m-0 mb-0.5">Oportunidades por status</h2>
-        <p class="text-[12.5px] text-slate-400 m-0 mb-1">Quantidade em cada etapa do funil.</p>
+        <div class="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h2 class="text-[14px] font-bold text-slate-900 m-0 mb-0.5">Oportunidades por status</h2>
+            <p class="text-[12.5px] text-slate-400 m-0 mb-1">Quantidade em cada etapa do funil.</p>
+          </div>
+          <select
+            v-if="pipelines.length > 1"
+            v-model="funnelBoardId"
+            class="h-[32px] pl-2.5 pr-7 text-[12.5px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-[7px] outline-none cursor-pointer focus:border-brand"
+          >
+            <option v-for="p in pipelines" :key="p.id" :value="p.id">{{ p.label }}</option>
+          </select>
+        </div>
         <ClientOnly>
           <apexchart type="bar" height="270" :options="statusOptions" :series="statusSeries" />
           <template #fallback>

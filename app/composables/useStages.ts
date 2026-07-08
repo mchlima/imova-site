@@ -9,6 +9,8 @@ export interface Stage {
   inKanban: boolean
   isWon: boolean
   isLost: boolean
+  // board (pipeline) ao qual o estágio pertence — usado p/ agrupar colunas por board
+  pipelineId: string
 }
 
 const FALLBACK_COLOR = '#64748b' // slate-500 para status desconhecido
@@ -37,6 +39,13 @@ export function useStages() {
   const orderedStages = computed(() => [...stages.value].sort((a, b) => a.order - b.order))
   // só os que aparecem como coluna no kanban
   const kanbanStages = computed(() => orderedStages.value.filter((s) => s.inKanban))
+
+  // ── por board (pipeline) ── com 2+ boards, cada tela filtra pelos estágios do seu board
+  const stagesFor = (pipelineId: string | null | undefined) =>
+    orderedStages.value.filter((s) => s.pipelineId === pipelineId)
+  const kanbanStagesFor = (pipelineId: string | null | undefined) =>
+    stagesFor(pipelineId).filter((s) => s.inKanban)
+  const firstStageKeyFor = (pipelineId: string | null | undefined) => stagesFor(pipelineId)[0]?.key || ''
   // lookup por key (== Opportunity.status)
   const stageMap = computed<Record<string, Stage>>(() =>
     Object.fromEntries(stages.value.map((s) => [s.key, s])),
@@ -56,6 +65,9 @@ export function useStages() {
     loadStages,
     orderedStages,
     kanbanStages,
+    stagesFor,
+    kanbanStagesFor,
+    firstStageKeyFor,
     stageMap,
     stageColor,
     stageLabel,

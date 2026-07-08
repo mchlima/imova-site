@@ -32,6 +32,7 @@ interface Stage {
   inKanban: boolean
   isWon: boolean
   isLost: boolean
+  pipelineId: string
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -54,6 +55,14 @@ const tab = ref<'fields' | 'funnel'>('fields')
 // caches compartilhados usados por oportunidades/crm/drawer — mantê-los em dia
 const { loadStages } = useStages()
 const { loadFieldDefinitions } = useFieldDefinitions()
+// boards: o editor de funil trabalha um board por vez (padrão = Captação)
+const { pipelines, loadPipelines, defaultPipeline } = usePipelines()
+const funnelBoardId = ref('')
+// estágios do board selecionado (o funil é por board)
+const funnelStages = computed(() => stages.value.filter((s) => s.pipelineId === funnelBoardId.value))
+watch(defaultPipeline, (p) => {
+  if (!funnelBoardId.value && p) funnelBoardId.value = p.id
+})
 
 async function loadAll() {
   loading.value = true
@@ -61,6 +70,7 @@ async function loadAll() {
     const [s, st] = await Promise.all([
       $fetch<Section[]>('/field-definitions/all', opts),
       $fetch<Stage[]>('/stages', opts),
+      loadPipelines(true),
     ])
     sections.value = s
     stages.value = st
@@ -177,7 +187,8 @@ async function saveStage() {
   if (stm.editing) {
     await $fetch(`/stages/${stm.editing}`, { ...opts, method: 'PATCH', body: base })
   } else {
-    await $fetch('/stages', { ...opts, method: 'POST', body: { ...base, key: stm.key } })
+    // cria no board selecionado do editor de funil
+    await $fetch('/stages', { ...opts, method: 'POST', body: { ...base, key: stm.key, pipelineId: funnelBoardId.value || undefined } })
   }
   stm.open = false
   await loadAll()
@@ -273,16 +284,25 @@ const badgeStyle = (c: string) => ({ color: c, backgroundColor: c + '1F' })
 
       <!-- FUNIL -->
       <section v-show="tab === 'funnel'">
-        <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center justify-between mb-3 gap-3 flex-wrap">
           <div>
             <h2 class="text-[15px] font-bold text-slate-900 m-0">Funil</h2>
-            <p class="text-[12.5px] text-slate-400 m-0">Estágios do funil. "No kanban" aparece como coluna.</p>
+            <p class="text-[12.5px] text-slate-400 m-0">Estágios do board. "No kanban" aparece como coluna.</p>
           </div>
-          <button class="h-[36px] px-3.5 bg-slate-900 text-white text-[13px] font-semibold rounded-lg cursor-pointer border-none hover:bg-slate-800" @click="newStage">+ Novo estágio</button>
+          <div class="flex items-center gap-2">
+            <select
+              v-if="pipelines.length > 1"
+              v-model="funnelBoardId"
+              class="h-[36px] pl-3 pr-8 text-[13px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg outline-none cursor-pointer focus:border-brand"
+            >
+              <option v-for="p in pipelines" :key="p.id" :value="p.id">{{ p.label }}</option>
+            </select>
+            <button class="h-[36px] px-3.5 bg-slate-900 text-white text-[13px] font-semibold rounded-lg cursor-pointer border-none hover:bg-slate-800" @click="newStage">+ Novo estágio</button>
+          </div>
         </div>
 
         <div :class="card" class="divide-y divide-slate-50">
-          <div v-for="(s, i) in stages" :key="s.id" class="flex items-center gap-2.5 px-4 py-3">
+          <div v-for="(s, i) in funnelStages" :key="s.id" class="flex items-center gap-2.5 px-4 py-3">
             <span class="w-2.5 h-2.5 rounded-full shrink-0" :style="{ backgroundColor: s.color }"></span>
             <span class="inline-flex items-center h-[22px] px-2 rounded-md text-[12px] font-semibold" :style="badgeStyle(s.color)">{{ s.label }}</span>
             <div class="flex items-center gap-1">
@@ -291,8 +311,8 @@ const badgeStyle = (c: string) => ({ color: c, backgroundColor: c + '1F' })
               <span v-if="s.isLost" class="text-[10.5px] font-semibold text-red-700 bg-red-50 rounded px-1.5 py-0.5">perda</span>
             </div>
             <div class="ml-auto flex items-center gap-0.5">
-              <button :class="ico" :disabled="i === 0" title="Subir" @click="move(stages, '/stages/reorder', i, -1)"><AdminIcon name="chevron" :size="15" class="rotate-180" /></button>
-              <button :class="ico" :disabled="i === stages.length - 1" title="Descer" @click="move(stages, '/stages/reorder', i, 1)"><AdminIcon name="chevron" :size="15" /></button>
+              <button :class="ico" :disabled="i === 0" title="Subir" @click="move(funnelStages, '/stages/reorder', i, -1)"><AdminIcon name="chevron" :size="15" class="rotate-180" /></button>
+              <button :class="ico" :disabled="i === funnelStages.length - 1" title="Descer" @click="move(funnelStages, '/stages/reorder', i, 1)"><AdminIcon name="chevron" :size="15" /></button>
               <button :class="ico" title="Editar estágio" @click="editStage(s)"><AdminIcon name="draft" :size="15" /></button>
               <button :class="ico" title="Excluir estágio" @click="deleteStage(s)"><AdminIcon name="trash" :size="15" /></button>
             </div>

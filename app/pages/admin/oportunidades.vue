@@ -13,8 +13,29 @@ useHead({ meta: [{ name: 'robots', content: 'noindex, nofollow' }] })
 
 const apiBase = useRuntimeConfig().public.apiBase
 
-// funil como dado (GET /stages) — nada de status hardcoded
-const { loadStages, kanbanStages, orderedStages, stageBadgeStyle } = useStages()
+// funil como dado (GET /stages) — nada de status hardcoded. Com 2+ boards, cada um
+// tem seus estágios: filtramos por board ativo (kanbanStagesFor / stagesFor).
+const { loadStages, kanbanStagesFor, stagesFor, stageBadgeStyle } = useStages()
+
+// boards (pipelines) — abas do quadro. Ownership leve: abre no board do usuário,
+// mas ninguém fica bloqueado de navegar nos outros.
+const { pipelines, loadPipelines, updatePipeline } = usePipelines()
+const { user } = useAuth()
+const { users, loadUsers } = useUsers()
+
+const activePipelineId = ref<string>('')
+const orderedBoards = computed(() => [...pipelines.value].sort((a, b) => a.order - b.order))
+const activeBoard = computed(() => pipelines.value.find((p) => p.id === activePipelineId.value) || null)
+// estágios do board ativo (colunas do kanban e chips de status do filtro)
+const activeKanbanStages = computed(() => kanbanStagesFor(activePipelineId.value))
+const activeStages = computed(() => stagesFor(activePipelineId.value))
+
+// define o board inicial: o board do usuário logado (dono) ou o primeiro.
+function pickInitialBoard() {
+  if (activePipelineId.value && pipelines.value.some((p) => p.id === activePipelineId.value)) return
+  const mine = user.value ? orderedBoards.value.find((p) => p.ownerUserId === user.value!.id) : null
+  activePipelineId.value = mine?.id || orderedBoards.value[0]?.id || ''
+}
 
 const opportunities = ref<Opportunity[]>([])
 const loading = ref(true)
@@ -53,6 +74,19 @@ function open(id: string) {
 // recebe a oportunidade atualizada pelo OpportunityDrawer e reflete na lista
 function onOpportunityUpdated(opportunity: Opportunity) {
   opportunities.value = opportunities.value.map((l) => (l.id === opportunity.id ? opportunity : l))
+}
+// oportunidade repassada para outro board: atualiza a lista e fecha o detalhe
+// (ela deixa o board atual). Uma nota do que aconteceu fica no card via drawer.
+function onOpportunityMoved(opportunity: Opportunity) {
+  onOpportunityUpdated(opportunity)
+  drawerOpen.value = false
+}
+
+// dono do board (ownership leve): define/remove pelo select ao lado das abas.
+const ownerName = (uid: string | null) => users.value.find((u) => u.id === uid)?.name || ''
+async function setOwner(uid: string) {
+  if (!activeBoard.value) return
+  await updatePipeline(activeBoard.value.id, { ownerUserId: uid || null })
 }
 
 // criação manual (NewOpportunityDrawer)
@@ -100,18 +134,35 @@ watch(fUf, (uf) => {
 onMounted(async () => {
   loadStates()
   loadStages()
+  loadUsers()
+  await loadPipelines()
+  pickInitialBoard()
   await loadOpportunities()
-  // deep-link vindo do Follow-up: /admin/oportunidades?oportunidade=<id> abre o drawer
+  // deep-link vindo do Follow-up: /admin/oportunidades?oportunidade=<id> abre o drawer.
+  // Ativa o board dono da oportunidade antes de abrir o detalhe.
   const wanted = useRoute().query.oportunidade as string | undefined
-  if (wanted && opportunities.value.some((l) => l.id === wanted)) {
-    selId.value = wanted
+  const target = wanted ? opportunities.value.find((l) => l.id === wanted) : null
+  if (target) {
+    if (target.pipelineId) activePipelineId.value = target.pipelineId
+    selId.value = target.id
     drawerOpen.value = true
   }
 })
 
+// troca de board: volta pra 1ª página e reconstrói o kanban
+watch(activePipelineId, () => {
+  page.value = 1
+  if (view.value === 'kanban') rebuildBoard()
+})
+
+// se os boards chegarem depois do usuário, escolhe o inicial
+watch([pipelines, user], pickInitialBoard)
+
 const filtered = computed(() => {
   const q = fSearch.value.trim().toLowerCase()
   return opportunities.value.filter((l) => {
+    // toda a tela é escopada ao board ativo
+    if (activePipelineId.value && l.pipelineId !== activePipelineId.value) return false
     if (q && !(l.contact.name + ' ' + l.contact.channels.map((c) => c.value).join(' ')).toLowerCase().includes(q)) return false
     if (fStatus.value && l.status !== fStatus.value) return false
     if (fTemperature.value && l.temperature !== fTemperature.value) return false
@@ -195,12 +246,13 @@ watch(view, (v) => {
 // Colunas reativas para o vuedraggable (cada uma com sua lista de cards).
 // As listas guardam REFERÊNCIAS aos objetos de `opportunities`, então mexer no
 // status/boardOrder de um card reflete na lista também.
-const boardCols = ref<{ status: string; color: string; items: Opportunity[] }[]>([])
+const boardCols = ref<{ status: string; label: string; color: string; items: Opportunity[] }[]>([])
 let suppressRebuild = false
 
 function rebuildBoard() {
-  boardCols.value = kanbanStages.value.map((col) => ({
+  boardCols.value = activeKanbanStages.value.map((col) => ({
     status: col.key,
+    label: col.label,
     color: col.color,
     items: filtered.value
       .filter((o) => o.status === col.key)
@@ -212,8 +264,8 @@ function rebuildBoard() {
   }))
 }
 
-// rebuild ao mudar filtros, dados, estágios carregados ou ao entrar no kanban
-watch([filtered, view, kanbanStages], () => {
+// rebuild ao mudar filtros, dados, estágios do board ativo ou ao entrar no kanban
+watch([filtered, view, activeKanbanStages], () => {
   if (suppressRebuild) return
   if (view.value === 'kanban') rebuildBoard()
 })
@@ -253,9 +305,48 @@ async function persistBoard() {
   <div>
     <div class="p-4 sm:p-6">
       <PageHeader
-        title="Oportunidades recebidas"
-        subtitle="Filtre, qualifique e repasse as oportunidades recebidas pelo simulador."
+        title="Oportunidades"
+        subtitle="Cada board é um funil. Receba e qualifique na Captação; repasse para o board da Corretora."
       />
+
+      <!-- SELETOR DE BOARDS (abas) + dono do board -->
+      <div v-if="orderedBoards.length" class="flex items-center gap-3 flex-wrap mb-[18px]">
+        <div class="inline-flex items-center bg-slate-100 rounded-[10px] p-0.5">
+          <button
+            v-for="b in orderedBoards"
+            :key="b.id"
+            type="button"
+            class="inline-flex items-center gap-1.5 h-[34px] px-3.5 rounded-[8px] text-[13px] font-semibold transition-all cursor-pointer border-none"
+            :class="
+              activePipelineId === b.id
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'bg-transparent text-slate-500 hover:text-slate-700'
+            "
+            @click="activePipelineId = b.id"
+          >
+            {{ b.label }}
+            <span
+              v-if="b.ownerUserId"
+              class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-brand-soft text-brand text-[10.5px] font-bold"
+              :title="'Board de ' + ownerName(b.ownerUserId)"
+              >{{ (ownerName(b.ownerUserId) || '?').charAt(0).toUpperCase() }}</span
+            >
+          </button>
+        </div>
+
+        <!-- dono do board ativo (ownership leve, não bloqueia navegação) -->
+        <label v-if="activeBoard" class="inline-flex items-center gap-1.5 text-[12.5px] text-slate-500">
+          <span>Dono deste board:</span>
+          <select
+            class="h-[30px] pl-2 pr-6 text-[12.5px] font-semibold text-slate-700 bg-white border border-slate-200 rounded-[7px] outline-none cursor-pointer focus:border-brand"
+            :value="activeBoard.ownerUserId || ''"
+            @change="setOwner(($event.target as HTMLSelectElement).value)"
+          >
+            <option value="">Sem dono</option>
+            <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option>
+          </select>
+        </label>
+      </div>
 
       <!-- BARRA: busca + data (fora) + botão de filtros (painel) -->
       <div class="flex gap-2.5 items-center flex-wrap mb-[18px]">
@@ -347,7 +438,7 @@ async function persistBoard() {
                 </div>
                 <div class="flex flex-wrap gap-1.5">
                   <button
-                    v-for="s in orderedStages"
+                    v-for="s in activeStages"
                     :key="s.key"
                     type="button"
                     :class="[chipBase, fStatus === s.key ? 'border-transparent shadow-sm' : chipInactive]"
@@ -609,7 +700,7 @@ async function persistBoard() {
             <!-- header da coluna -->
             <div class="flex items-center gap-2 px-2 py-2">
               <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: col.color }"></span>
-              <span class="text-[12.5px] font-bold text-slate-700">{{ col.status }}</span>
+              <span class="text-[12.5px] font-bold text-slate-700">{{ col.label }}</span>
               <span
                 class="ml-auto inline-flex items-center justify-center min-w-[20px] h-[19px] px-1.5 rounded-full bg-white text-slate-500 text-[11px] font-bold"
                 >{{ col.items.length }}</span
@@ -670,10 +761,20 @@ async function persistBoard() {
     </div>
 
     <!-- DETAIL DRAWER (componente reutilizável) -->
-    <OpportunityDrawer v-model="drawerOpen" :opportunity="sel" @updated="onOpportunityUpdated" />
+    <OpportunityDrawer
+      v-model="drawerOpen"
+      :opportunity="sel"
+      :boards="orderedBoards"
+      @updated="onOpportunityUpdated"
+      @moved="onOpportunityMoved"
+    />
 
-    <!-- CRIAÇÃO manual -->
-    <NewOpportunityDrawer v-model="newOppOpen" @created="onOpportunityCreated" />
+    <!-- CRIAÇÃO manual (no board ativo) -->
+    <NewOpportunityDrawer
+      v-model="newOppOpen"
+      :pipeline-id="activePipelineId"
+      @created="onOpportunityCreated"
+    />
   </div>
 </template>
 
