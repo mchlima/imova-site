@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DateRange } from '~/components/DateRangePicker.vue'
 import VueDraggable from 'vuedraggable'
-import { type Opportunity, type RawOpportunity, mapOpportunity, sourceLabel, TEMPS, tempBadgeStyle, fmtDateTime, dueState } from '~/utils/opportunityModel'
+import { type Opportunity, type RawOpportunity, mapOpportunity, sourceLabel, TEMPS, TEMP_HEX, tempBadgeStyle, fmtDateTime, dueState } from '~/utils/opportunityModel'
 
 // vuedraggable expõe um build UMD no campo "module"; normaliza o default export
 // para funcionar tanto no SSR quanto no bundle do client (evita componente undefined).
@@ -63,6 +63,9 @@ const fTemperature = ref('')
 const fUf = ref('')
 const fCity = ref('')
 const fRange = ref<DateRange>({ start: '', end: '' })
+
+// cor de realce da temperatura (usada na borda do card do kanban)
+const tempColor = (t: string) => TEMP_HEX[t] || '#94A3B8'
 
 // drawer
 const selId = ref<string | null>(null)
@@ -690,17 +693,13 @@ async function persistBoard() {
             >
               <template #item="{ element: o }">
                 <div
-                  class="bg-white border border-slate-200 rounded-[9px] p-3 cursor-grab active:cursor-grabbing shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:border-slate-300 transition-colors"
+                  class="bg-white border border-slate-200 border-l-[3px] rounded-[9px] p-3 cursor-grab active:cursor-grabbing shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:border-slate-300 transition-colors"
+                  :style="{ borderLeftColor: tempColor(o.temperature) }"
+                  :title="'Temperatura: ' + o.temperature"
                   @click="open(o.id)"
                 >
-                  <div class="flex items-start justify-between gap-2">
+                  <div class="flex items-start gap-2">
                     <span class="text-[13.5px] font-semibold text-slate-900 truncate">{{ o.contact.name }}</span>
-                    <span
-                      :class="badgeBase"
-                      :style="tempBadgeStyle(o.temperature)"
-                      class="!h-[18px] !px-1.5 !text-[10.5px] shrink-0"
-                      >{{ o.temperature }}</span
-                    >
                   </div>
                   <div class="flex items-center justify-between gap-2 mt-2">
                     <span class="inline-flex items-center h-[18px] px-1.5 rounded text-[10.5px] font-semibold bg-slate-100 text-slate-500">{{ sourceLabel(o.source) }}</span>
