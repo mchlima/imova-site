@@ -664,11 +664,11 @@ async function persistBoard() {
             Tentar de novo
           </button>
         </div>
-        <div v-else class="flex gap-4 items-start overflow-x-auto pb-3 -mx-1 px-1">
+        <div v-else class="flex gap-4 items-stretch overflow-x-auto pb-3 -mx-1 px-1 h-[calc(100vh-220px)]">
           <div
             v-for="col in boardCols"
             :key="col.status"
-            class="w-[296px] shrink-0 bg-slate-100/70 rounded-xl p-2.5"
+            class="w-[296px] shrink-0 bg-slate-100/70 rounded-xl p-2.5 flex flex-col overflow-hidden"
           >
             <!-- header da coluna -->
             <div class="flex items-center gap-2 px-2 py-2">
@@ -685,7 +685,7 @@ async function persistBoard() {
               v-model="col.items"
               :group="{ name: 'opps' }"
               item-key="id"
-              class="flex flex-col gap-2 min-h-[120px] px-0.5 pb-1"
+              class="flex flex-col gap-2 min-h-[120px] px-0.5 pb-1 flex-1 overflow-y-auto"
               ghost-class="kanban-ghost"
               drag-class="kanban-drag"
               :animation="160"
