@@ -4,7 +4,7 @@
 // Reusa os endpoints existentes: PATCH /opportunities/:id (etapa/temperatura/responsáveis),
 // POST /:id/move-pipeline (repasse) e DELETE /:id (excluir).
 import type { Opportunity, RawOpportunity, Assignee } from '~/utils/opportunityModel'
-import { mapOpportunity, TEMPS, TEMP_HEX } from '~/utils/opportunityModel'
+import { mapOpportunity, TEMPS, TEMP_HEX, LOSS_REASONS } from '~/utils/opportunityModel'
 import type { Stage } from '~/composables/useStages'
 import type { Pipeline } from '~/composables/usePipelines'
 import type { CrmUser } from '~/composables/useUsers'
@@ -24,7 +24,7 @@ const apiBase = useRuntimeConfig().public.apiBase
 
 const opp = ref<Opportunity | null>(null)
 const openState = ref(false)
-const view = ref<'root' | 'move' | 'stage' | 'assignee' | 'temp'>('root')
+const view = ref<'root' | 'move' | 'stage' | 'assignee' | 'temp' | 'lost'>('root')
 const pos = ref({ x: 0, y: 0 })
 const busy = ref(false)
 
@@ -108,9 +108,9 @@ async function markWon() {
   await patch({ status: wonStage.value.key }, { status: wonStage.value.key })
   close()
 }
-async function markLost() {
+// marca como perdido escolhendo um motivo curado (submenu 'lost')
+async function setLost(reason: string) {
   if (!lostStage.value) return
-  const reason = window.prompt('Motivo da perda (opcional):', '') ?? ''
   await patch({ status: lostStage.value.key, lossReason: reason }, { status: lostStage.value.key })
   close()
 }
@@ -226,8 +226,9 @@ const MIcon = (props: { name: string; class?: unknown }) =>
               <MIcon name="won" class="!text-emerald-600" /> Marcar ganho
             </span>
           </button>
-          <button v-if="lostStage" :class="item" @click="markLost">
+          <button v-if="lostStage" :class="item" @click="view = 'lost'">
             <span class="flex items-center gap-2.5"><MIcon name="lost" /> Marcar perdido</span>
+            <span :class="chev">▸</span>
           </button>
           <div :class="divider" />
           <button :class="item" class="!text-red-600 hover:!bg-red-50" @click="removeOpp">
@@ -241,6 +242,15 @@ const MIcon = (props: { name: string; class?: unknown }) =>
           <div :class="divider" />
           <button v-for="b in otherBoards" :key="b.id" :class="item" :disabled="busy" @click="moveTo(b)">
             <span class="flex items-center gap-2.5"><MIcon name="send" /> {{ b.label }}</span>
+          </button>
+        </template>
+
+        <!-- MOTIVO DA PERDA -->
+        <template v-else-if="view === 'lost'">
+          <button :class="head" @click="view = 'root'"><span :class="chev">←</span> Marcar perdido</button>
+          <div :class="divider" />
+          <button v-for="r in LOSS_REASONS" :key="r" :class="item" @click="setLost(r)">
+            <span class="flex items-center gap-2.5"><MIcon name="lost" /> {{ r }}</span>
           </button>
         </template>
 

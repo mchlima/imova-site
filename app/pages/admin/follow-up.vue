@@ -141,6 +141,11 @@ function onOpportunityUpdated(opportunity: Opportunity) {
   selectedOpportunity.value = opportunity
   load()
 }
+// oportunidade excluída pelo menu de ações: recarrega as pendências
+function onOpportunityDeleted() {
+  selectedOpportunity.value = null
+  load()
+}
 // concluir abre o modal para revisar/registrar o desfecho
 const completeOpen = ref(false)
 const toComplete = ref<PendingActivity | null>(null)
@@ -298,7 +303,12 @@ const th = 'py-3 px-3 text-left text-[11px] font-bold uppercase tracking-[0.04em
       </div>
     </div>
 
-    <OpportunityDrawer v-model="drawerOpen" :opportunity="selectedOpportunity" @updated="onOpportunityUpdated" />
+    <OpportunityDrawer
+      v-model="drawerOpen"
+      :opportunity="selectedOpportunity"
+      @updated="onOpportunityUpdated"
+      @deleted="onOpportunityDeleted"
+    />
     <ActivityCompleteModal v-model="completeOpen" :activity="toComplete" @confirm="confirmComplete" />
   </div>
 </template>

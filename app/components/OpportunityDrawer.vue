@@ -3,14 +3,11 @@ import {
   type Opportunity,
   type Contact,
   type Activity,
-  type Assignee,
   type RawOpportunity,
   mapOpportunity,
   formatResidence,
   CHANNEL_LABELS,
   CHANNEL_ICONS,
-  TEMPS,
-  TEMP_HEX,
   tempBadgeStyle,
   fmtBRL,
   fmtDateTime,
@@ -29,6 +26,7 @@ const emit = defineEmits<{
   'update:modelValue': [boolean]
   updated: [Opportunity]
   moved: [Opportunity]
+  deleted: [string]
 }>()
 
 const apiBase = useRuntimeConfig().public.apiBase
@@ -41,40 +39,29 @@ const fmt = fmtBRL
 
 // funil como dado — opções/cores de status vêm de GET /stages. Com 2+ boards, o
 // seletor de status mostra só os estágios do board DESTA oportunidade.
-const { loadStages, stagesFor, stageMap, stageBadgeStyle, stageLabel } = useStages()
+const { loadStages, stagesFor, stageBadgeStyle, stageLabel } = useStages()
 loadStages()
 
 // estágios do board da oportunidade aberta
 const oppStages = computed(() => stagesFor(sel.value?.pipelineId))
-// outros boards (destinos de repasse), na ordem
-const otherBoards = computed(() =>
-  [...(props.boards ?? [])]
-    .sort((a, b) => a.order - b.order)
-    .filter((b) => b.id !== sel.value?.pipelineId),
-)
-const currentBoard = computed(() => props.boards?.find((b) => b.id === sel.value?.pipelineId) || null)
 
-// Repasse: move a oportunidade para outro board (cai no 1º estágio do destino).
-const moving = ref(false)
-async function moveToBoard(target: Pipeline) {
-  const id = sel.value?.id
-  if (!id || moving.value) return
-  moving.value = true
-  try {
-    const updated = await $fetch<RawOpportunity>(`/opportunities/${id}/move-pipeline`, {
-      baseURL: apiBase,
-      method: 'POST',
-      credentials: 'include',
-      body: { pipelineId: target.id },
-    })
-    emit('moved', mapOpportunity(updated))
-  } catch {
-    /* o pai recarrega se precisar */
-  } finally {
-    moving.value = false
-  }
+// boards ordenados (destinos de repasse no menu de ações)
+const orderedBoards = computed(() => [...(props.boards ?? [])].sort((a, b) => a.order - b.order))
+
+// usuários (responsáveis) — para o menu de ações do header
+const { users, loadUsers } = useUsers()
+loadUsers()
+
+// menu de ações rápidas (kebab) no header — o mesmo dos cards
+const cardMenu = ref<{ openFor: (o: Opportunity, e: MouseEvent) => void } | null>(null)
+function openMenu(e: MouseEvent) {
+  if (sel.value) cardMenu.value?.openFor(sel.value, e)
 }
-
+// oportunidade excluída pelo menu: avisa o pai e fecha o drawer
+function onMenuDeleted(id: string) {
+  emit('deleted', id)
+  open.value = false
+}
 // campos personalizados (qualificação, preferências) — vêm de GET /field-definitions
 const { sections: fieldSections, loadFieldDefinitions } = useFieldDefinitions()
 loadFieldDefinitions()
@@ -131,24 +118,6 @@ async function patchSel(patch: Partial<Opportunity>) {
   }
 }
 
-// responsáveis: atualização otimista dos avatares + PATCH com o conjunto de ids
-async function patchAssignees(assignees: Assignee[]) {
-  const id = sel.value?.id
-  if (!id) return
-  emit('updated', { ...(sel.value as Opportunity), assignees })
-  try {
-    const updated = await $fetch<RawOpportunity>(`/opportunities/${id}`, {
-      baseURL: apiBase,
-      method: 'PATCH',
-      credentials: 'include',
-      body: { assigneeIds: assignees.map((a) => a.id) },
-    })
-    emit('updated', mapOpportunity(updated))
-  } catch {
-    /* o pai recarrega se precisar */
-  }
-}
-
 // valor de um campo personalizado (aninhado por seção)
 function fieldValue(sectionKey: string, fieldKey: string) {
   const fields = sel.value?.fields as Record<string, Record<string, unknown>> | undefined
@@ -159,16 +128,6 @@ function patchField(sectionKey: string, fieldKey: string, value: unknown) {
   const cur = (sel.value?.fields as Record<string, Record<string, unknown>>) ?? {}
   const merged = { ...cur, [sectionKey]: { ...(cur[sectionKey] ?? {}), [fieldKey]: value } }
   patchSel({ fields: merged })
-}
-
-const LOSS_REASONS = ['Sem retorno', 'Fora do perfil', 'Comprou com outro', 'Sem interesse', 'Outro']
-// estágio de perda é dado (isLost no funil), não string fixa — cada board tem o seu.
-const isLossKey = (key: string) => !!stageMap.value[key]?.isLost
-const isLostStatus = computed(() => isLossKey(sel.value?.status || ''))
-function onStatusChange(status: string) {
-  // ao sair de um estágio de perda, limpa o motivo da perda
-  if (!isLossKey(status) && sel.value?.lossReason) patchSel({ status, lossReason: '' })
-  else patchSel({ status })
 }
 
 const tempBtnBase =
@@ -211,14 +170,14 @@ const naIsFuture = computed(
   () => !isNota.value && !!naDue.value && new Date(naDue.value).getTime() > Date.now(),
 )
 
-// abas do drawer
-const tab = ref<'oportunidade' | 'atividades' | 'dados'>('oportunidade')
+// abas do drawer (a antiga "Oportunidade" saiu — ações vão pro kebab do header)
+const tab = ref<'atividades' | 'dados'>('atividades')
 
-// ao (re)abrir o drawer: atualiza o campo de data e volta pra aba Oportunidade
+// ao (re)abrir o drawer: atualiza o campo de data e volta pra aba Atividades
 watch(open, (v) => {
   if (v) {
     naDue.value = nowLocal()
-    tab.value = 'oportunidade'
+    tab.value = 'atividades'
   }
 })
 
@@ -315,8 +274,6 @@ const slideT = {
   leaveActiveClass: 'transition-transform duration-200 ease-in',
   leaveToClass: 'translate-x-full',
 }
-
-const drawerLabel = 'block text-[12.5px] font-semibold text-slate-700 mb-[7px]'
 const drawerSelect =
   'w-full h-[38px] pl-[11px] pr-7 text-[13px] text-slate-900 border border-slate-300 rounded-lg bg-white cursor-pointer outline-none'
 const drawerInput =
@@ -348,6 +305,7 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
                 </h2>
                 <span :class="badgeBase" :style="tempBadgeStyle(sel.temperature)">{{ sel.temperature }}</span>
                 <span :class="badgeBase" :style="stageBadgeStyle(sel.status)">{{ stageLabel(sel.status) }}</span>
+                <AvatarStack v-if="sel.assignees?.length" :users="sel.assignees" :size="22" :max="4" />
               </div>
 
               <!-- contato: canais (clicáveis) + editar — no header, sem repetir o nome -->
@@ -378,23 +336,29 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
                 Recebido em {{ sel.date }}<template v-if="formatResidence(sel.contact)"> · reside em {{ formatResidence(sel.contact) }}</template>
               </div>
             </div>
-            <button
-              class="w-9 h-9 border border-slate-200 bg-white rounded-[7px] text-[16px] text-slate-500 cursor-pointer leading-none shrink-0"
-              @click="open = false"
-            >
-              ✕
-            </button>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <!-- ações rápidas (mesmo menu dos cards) -->
+              <button
+                class="w-9 h-9 inline-flex items-center justify-center border border-slate-200 bg-white rounded-[7px] text-slate-500 cursor-pointer hover:bg-slate-50 hover:text-slate-800 transition-colors"
+                title="Ações rápidas"
+                @click="openMenu($event)"
+              >
+                <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="5" r="1.7" />
+                  <circle cx="12" cy="12" r="1.7" />
+                  <circle cx="12" cy="19" r="1.7" />
+                </svg>
+              </button>
+              <button
+                class="w-9 h-9 border border-slate-200 bg-white rounded-[7px] text-[16px] text-slate-500 cursor-pointer leading-none"
+                @click="open = false"
+              >
+                ✕
+              </button>
+            </div>
           </div>
           <!-- abas -->
           <div class="px-[22px] flex gap-5">
-            <button
-              type="button"
-              class="pb-2.5 -mb-px text-[13px] font-semibold border-b-2 cursor-pointer bg-transparent transition-colors"
-              :class="tab === 'oportunidade' ? 'text-brand border-brand' : 'text-slate-500 border-transparent hover:text-slate-700'"
-              @click="tab = 'oportunidade'"
-            >
-              Oportunidade
-            </button>
             <button
               type="button"
               class="pb-2.5 -mb-px text-[13px] font-semibold border-b-2 cursor-pointer bg-transparent transition-colors"
@@ -411,77 +375,6 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
             >
               Dados
             </button>
-          </div>
-        </div>
-
-        <!-- ABA OPORTUNIDADE -->
-        <div v-show="tab === 'oportunidade'" class="px-[22px] pt-5 pb-10 flex flex-col gap-[18px]">
-          <!-- funil: status + temperatura (intrínsecos da oportunidade) -->
-          <div class="bg-white border border-slate-200 rounded-[10px] p-[18px]">
-            <div :class="blockLabel">Funil</div>
-
-            <label :class="drawerLabel">Responsáveis</label>
-            <div class="mb-4">
-              <AssigneePicker
-                :model-value="sel.assignees"
-                @update:model-value="patchAssignees($event)"
-              />
-            </div>
-
-            <label :class="drawerLabel">Temperatura</label>
-            <div class="mb-4">
-              <ChipSelect
-                :model-value="sel.temperature"
-                :options="TEMPS.map((t) => ({ value: t, label: t, color: TEMP_HEX[t] || '#94A3B8' }))"
-                @update:model-value="patchSel({ temperature: $event })"
-              />
-            </div>
-
-            <label :class="drawerLabel">Status</label>
-            <div :class="{ 'mb-4': isLostStatus }">
-              <ChipSelect
-                :model-value="sel.status"
-                :options="oppStages.map((s) => ({ value: s.key, label: s.label, color: s.color }))"
-                @update:model-value="onStatusChange($event)"
-              />
-            </div>
-            <div v-if="isLostStatus">
-              <label :class="drawerLabel">Motivo da perda</label>
-              <select
-                :value="sel.lossReason"
-                :class="drawerSelect"
-                @change="patchSel({ lossReason: ($event.target as HTMLSelectElement).value })"
-              >
-                <option value="">—</option>
-                <option v-for="r in LOSS_REASONS" :key="r" :value="r">{{ r }}</option>
-              </select>
-            </div>
-
-            <!-- REPASSE entre boards (ex.: enviar para o board da Corretora) -->
-            <div v-if="otherBoards.length" class="mt-4 pt-4 border-t border-slate-100">
-              <label :class="drawerLabel">Board</label>
-              <div class="flex items-center gap-2 mb-2.5">
-                <span class="inline-flex items-center h-[24px] px-2.5 rounded-md text-[12px] font-semibold bg-slate-100 text-slate-600">
-                  {{ currentBoard?.label || '—' }}
-                </span>
-              </div>
-              <div class="flex flex-wrap gap-2">
-                <button
-                  v-for="b in otherBoards"
-                  :key="b.id"
-                  type="button"
-                  :disabled="moving"
-                  class="inline-flex items-center gap-1.5 h-[36px] px-3.5 text-[13px] font-semibold text-white bg-brand rounded-[8px] cursor-pointer border-none transition-all hover:bg-brand-dark disabled:opacity-50"
-                  @click="moveToBoard(b)"
-                >
-                  <span class="text-[15px] leading-none">→</span>
-                  Enviar para {{ b.label }}
-                </button>
-              </div>
-              <p class="text-[11.5px] text-slate-400 mt-2">
-                A oportunidade entra no primeiro estágio do board de destino.
-              </p>
-            </div>
           </div>
         </div>
 
@@ -662,5 +555,16 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
     />
 
     <ActivityCompleteModal v-model="completeOpen" :activity="toComplete" @confirm="confirmComplete" />
+
+    <!-- menu de ações rápidas do header (o mesmo dos cards) -->
+    <CardActionsMenu
+      ref="cardMenu"
+      :stages="oppStages"
+      :boards="orderedBoards"
+      :users="users"
+      @updated="emit('updated', $event)"
+      @moved="emit('moved', $event)"
+      @deleted="onMenuDeleted"
+    />
   </div>
 </template>

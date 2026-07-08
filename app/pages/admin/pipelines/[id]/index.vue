@@ -778,6 +778,7 @@ async function persistBoard() {
       :boards="orderedBoards"
       @updated="onOpportunityUpdated"
       @moved="onOpportunityMoved"
+      @deleted="onOpportunityDeleted"
     />
 
     <!-- MENU de ações rápidas do card (⋯ / botão direito) -->

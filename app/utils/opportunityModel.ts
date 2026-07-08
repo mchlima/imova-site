@@ -151,6 +151,9 @@ export const SOURCE_LABELS: Record<string, string> = {
 export const sourceLabel = (s: string | null | undefined) =>
   s ? SOURCE_LABELS[s] || s : '—'
 
+// Motivos de perda (lista curada) — usados ao marcar uma oportunidade como perdida.
+export const LOSS_REASONS = ['Sem retorno', 'Fora do perfil', 'Comprou com outro', 'Sem interesse', 'Outro']
+
 // Temperatura: opções + cor do chip (hex + alpha), no mesmo padrão do status.
 export const TEMPS = ['Quente', 'Morno', 'Frio', 'Sem classificação']
 export const TEMP_HEX: Record<string, string> = {
