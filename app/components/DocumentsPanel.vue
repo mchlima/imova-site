@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type DocumentItem, DOC_CATEGORIES, DOC_ACCEPT, DOC_MAX_BYTES } from '~/utils/documentModel'
+import { type DocumentItem, DOC_ACCEPT, DOC_MAX_BYTES } from '~/utils/documentModel'
 
 // contactId = dono dos documentos. opportunityId (opcional) = contexto de envio;
 // quando presente, separa "desta oportunidade" dos demais do contato (reutilizáveis).
@@ -9,9 +9,9 @@ const apiBase = useRuntimeConfig().public.apiBase
 const docs = ref<DocumentItem[]>([])
 const loading = ref(false)
 const uploading = ref(false)
+const uploadDone = ref(0)
+const uploadTotal = ref(0)
 const error = ref('')
-const category = ref('rg_cpf')
-const categoryLabel = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
 
 async function load() {
@@ -41,38 +41,39 @@ const docsOther = computed(() =>
   props.opportunityId ? docs.value.filter((d) => d.opportunityId !== props.opportunityId) : [],
 )
 
-function pickFile() {
+function pickFiles() {
   error.value = ''
-  if (category.value === 'outro' && !categoryLabel.value.trim()) {
-    error.value = 'Descreva o tipo do documento (Outro).'
-    return
-  }
   fileInput.value?.click()
 }
 
-async function onFile(e: Event) {
+async function onFiles(e: Event) {
   const input = e.target as HTMLInputElement
-  const file = input.files?.[0]
-  input.value = '' // permite reenviar o mesmo arquivo
-  if (!file || !props.contactId) return
-  if (file.size > DOC_MAX_BYTES) {
-    error.value = 'Arquivo acima de 25 MB.'
-    return
-  }
+  const files = Array.from(input.files ?? [])
+  input.value = '' // permite reenviar os mesmos arquivos
+  if (!files.length || !props.contactId) return
+
+  // filtra por tamanho (extensão é limitada pelo accept + validada no backend)
+  const tooBig = files.filter((f) => f.size > DOC_MAX_BYTES)
+  const toSend = files.filter((f) => f.size <= DOC_MAX_BYTES)
+  error.value = tooBig.length ? `${tooBig.length} arquivo(s) acima de 25 MB foram ignorados.` : ''
+  if (!toSend.length) return
+
   uploading.value = true
-  error.value = ''
+  uploadTotal.value = toSend.length
+  uploadDone.value = 0
   try {
-    const form = new FormData()
-    form.append('file', file)
-    form.append('contactId', props.contactId)
-    if (props.opportunityId) form.append('opportunityId', props.opportunityId)
-    form.append('category', category.value)
-    if (category.value === 'outro') form.append('categoryLabel', categoryLabel.value.trim())
-    await $fetch('/documents', { baseURL: apiBase, method: 'POST', credentials: 'include', body: form })
-    categoryLabel.value = ''
+    for (const file of toSend) {
+      const form = new FormData()
+      form.append('file', file)
+      form.append('contactId', props.contactId)
+      if (props.opportunityId) form.append('opportunityId', props.opportunityId)
+      await $fetch('/documents', { baseURL: apiBase, method: 'POST', credentials: 'include', body: form })
+      uploadDone.value++
+    }
     await load()
   } catch (err: any) {
-    error.value = err?.data?.message || 'Falha ao enviar o documento.'
+    error.value = err?.data?.message || 'Falha ao enviar um dos documentos.'
+    await load() // reflete os que subiram antes da falha
   } finally {
     uploading.value = false
   }
@@ -106,33 +107,21 @@ async function removeDoc(d: DocumentItem) {
   <div class="flex flex-col gap-4">
     <!-- uploader -->
     <div class="bg-white border border-slate-200 rounded-[10px] p-3.5">
-      <div class="flex flex-wrap items-center gap-2">
-        <select
-          v-model="category"
-          class="h-9 px-2.5 text-[13px] text-slate-800 border border-slate-300 rounded-lg outline-none bg-white"
-        >
-          <option v-for="c in DOC_CATEGORIES" :key="c.value" :value="c.value">{{ c.label }}</option>
-        </select>
-        <input
-          v-if="category === 'outro'"
-          v-model="categoryLabel"
-          placeholder="Qual documento?"
-          class="h-9 px-2.5 text-[13px] text-slate-800 border border-slate-300 rounded-lg outline-none flex-1 min-w-[120px]"
-        />
+      <div class="flex items-center gap-2">
+        <p class="text-[12.5px] text-slate-500">
+          PDF, imagens ou Office · até 25 MB por arquivo.
+        </p>
         <button
           type="button"
-          class="h-9 px-3.5 text-[13px] font-semibold text-white bg-brand rounded-[7px] cursor-pointer border-none hover:bg-brand-dark disabled:opacity-50 ml-auto"
+          class="h-9 px-3.5 text-[13px] font-semibold text-white bg-brand rounded-[7px] cursor-pointer border-none hover:bg-brand-dark disabled:opacity-50 ml-auto shrink-0"
           :disabled="uploading || !contactId"
-          @click="pickFile"
+          @click="pickFiles"
         >
-          {{ uploading ? 'Enviando…' : '+ Enviar documento' }}
+          {{ uploading ? `Enviando ${uploadDone}/${uploadTotal}…` : '+ Enviar documentos' }}
         </button>
-        <input ref="fileInput" type="file" class="hidden" :accept="DOC_ACCEPT" @change="onFile" />
+        <input ref="fileInput" type="file" multiple class="hidden" :accept="DOC_ACCEPT" @change="onFiles" />
       </div>
       <p v-if="error" class="text-[12px] text-red-600 mt-2">{{ error }}</p>
-      <p class="text-[11.5px] text-slate-400 mt-2">
-        PDF, imagens ou Office · até 25 MB · armazenamento privado (acesso só pelo CRM).
-      </p>
     </div>
 
     <div v-if="loading" class="text-[13px] text-slate-400 text-center py-4">Carregando…</div>

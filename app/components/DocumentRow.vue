@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type DocumentItem, docCategoryLabel, fmtFileSize, fileEmoji } from '~/utils/documentModel'
+import { type DocumentItem, fmtFileSize, fileEmoji } from '~/utils/documentModel'
 import { fmtDateTime } from '~/utils/opportunityModel'
 
 defineProps<{ doc: DocumentItem }>()
@@ -12,8 +12,7 @@ const emit = defineEmits<{ open: [DocumentItem, boolean]; remove: [DocumentItem]
     <div class="min-w-0 flex-1">
       <div class="text-[13px] font-semibold text-slate-800 truncate">{{ doc.fileName }}</div>
       <div class="text-[11.5px] text-slate-400 truncate">
-        {{ docCategoryLabel(doc) }} · {{ fmtFileSize(doc.size) }} ·
-        {{ doc.uploadedBy || '—' }} · {{ fmtDateTime(doc.createdAt) }}
+        {{ fmtFileSize(doc.size) }} · {{ doc.uploadedBy || '—' }} · {{ fmtDateTime(doc.createdAt) }}
       </div>
     </div>
     <div class="flex items-center gap-1 shrink-0">
