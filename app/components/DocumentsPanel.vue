@@ -149,9 +149,6 @@ async function removeDoc(d: DocumentItem) {
 
     <!-- desta oportunidade -->
     <div v-if="opportunityId">
-      <div class="text-[11.5px] font-bold uppercase tracking-[0.05em] text-slate-400 mb-2">
-        Desta oportunidade
-      </div>
       <div v-if="!docsHere.length" class="text-[12.5px] text-slate-400 py-1">
         Nenhum documento enviado nesta oportunidade.
       </div>
