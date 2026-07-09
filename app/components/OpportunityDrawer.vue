@@ -906,13 +906,10 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
                 </button>
               </div>
             </div>
-            <MarkdownEditor
+            <NoteEditor
               v-if="tab === 'oportunidade'"
               v-model="descDraft"
-              height="260px"
-              initial-edit-type="wysiwyg"
-              :hide-mode-switch="true"
-              toolbar="simple"
+              min-height="150px"
               placeholder="Escreva uma descrição da oportunidade…"
             />
             <p class="mt-1.5 text-[11.5px] text-slate-400">Anotações internas: negociação, contexto e próximos passos.</p>
