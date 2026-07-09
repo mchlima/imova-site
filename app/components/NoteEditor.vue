@@ -11,6 +11,65 @@ const props = withDefaults(
 const el = ref<HTMLElement | null>(null)
 const isEmpty = ref(true)
 
+// Conteúdo antigo pode ter sido salvo em MARKDOWN (editor anterior). Se não parecer
+// HTML, converte o subconjunto que suportamos (negrito/itálico/listas/link) para
+// exibir e editar visualmente. Se já for HTML (deste editor), usa como está.
+function looksLikeHtml(s: string) {
+  return /<[a-z][\s\S]*>/i.test(s)
+}
+function esc(s: string) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+function inlineMd(t: string) {
+  return esc(t)
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/\*(.+?)\*/g, '<i>$1</i>')
+    .replace(/_(.+?)_/g, '<i>$1</i>')
+    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2">$1</a>')
+}
+function mdToHtml(src: string) {
+  const lines = src.replace(/\r\n/g, '\n').split('\n')
+  const out: string[] = []
+  let list: 'ul' | 'ol' | null = null
+  const closeList = () => {
+    if (list) {
+      out.push(`</${list}>`)
+      list = null
+    }
+  }
+  for (const raw of lines) {
+    const ul = raw.match(/^\s*[-*]\s+(.*)$/)
+    const ol = raw.match(/^\s*\d+\.\s+(.*)$/)
+    if (ul) {
+      if (list !== 'ul') {
+        closeList()
+        out.push('<ul>')
+        list = 'ul'
+      }
+      out.push(`<li>${inlineMd(ul[1]!)}</li>`)
+    } else if (ol) {
+      if (list !== 'ol') {
+        closeList()
+        out.push('<ol>')
+        list = 'ol'
+      }
+      out.push(`<li>${inlineMd(ol[1]!)}</li>`)
+    } else if (raw.trim() === '') {
+      closeList()
+    } else {
+      closeList()
+      out.push(`<div>${inlineMd(raw)}</div>`)
+    }
+  }
+  closeList()
+  return out.join('')
+}
+// HTML pronto para o contenteditable a partir do valor guardado
+function toHtml(v: string) {
+  if (!v) return ''
+  return looksLikeHtml(v) ? v : mdToHtml(v)
+}
+
 // considera vazio quando não sobra texto (ignora <br>/&nbsp;/tags)
 function isBlank(html: string) {
   return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, '').trim() === ''
@@ -26,14 +85,15 @@ function onInput() {
 
 // sincroniza quando o valor muda por fora (ex.: abrir/trocar de oportunidade)
 watch(model, (v) => {
-  if (el.value && v !== el.value.innerHTML) {
-    el.value.innerHTML = v || ''
+  const html = toHtml(v || '')
+  if (el.value && html !== el.value.innerHTML) {
+    el.value.innerHTML = html
     syncEmpty()
   }
 })
 onMounted(() => {
   if (el.value) {
-    el.value.innerHTML = model.value || ''
+    el.value.innerHTML = toHtml(model.value || '')
     syncEmpty()
   }
 })
