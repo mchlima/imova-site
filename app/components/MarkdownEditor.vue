@@ -32,7 +32,7 @@ const TOOLBARS = {
     ['table', 'link'],
     ['code', 'codeblock'],
   ],
-  simple: [['heading', 'bold', 'italic'], ['ul', 'ol'], ['quote', 'link']],
+  simple: [['bold', 'italic'], ['ul', 'ol'], ['link']],
 }
 
 const el = ref<HTMLElement | null>(null)
@@ -78,7 +78,7 @@ onBeforeUnmount(() => {
 
 <template>
   <ClientOnly>
-    <div ref="el" class="imova-md-editor"></div>
+    <div ref="el" class="imova-md-editor" :class="{ 'imova-md-editor--light': props.toolbar === 'simple' }"></div>
     <template #fallback>
       <div
         class="flex items-center justify-center text-slate-400 text-[14px] border border-slate-200 rounded-lg bg-slate-50"
@@ -121,5 +121,38 @@ onBeforeUnmount(() => {
 .imova-md-editor .toastui-editor-mode-switch {
   border-bottom-left-radius: 12px;
   border-bottom-right-radius: 12px;
+}
+
+/* ── variante "leve" (toolbar simple) ── barra discreta, sem peso visual ── */
+.imova-md-editor--light .toastui-editor-defaultUI {
+  border-radius: 10px;
+}
+.imova-md-editor--light .toastui-editor-toolbar {
+  background: transparent;
+}
+.imova-md-editor--light .toastui-editor-defaultUI-toolbar {
+  padding: 3px 6px;
+  background: transparent;
+  border-bottom: 1px solid #f1f5f9;
+}
+/* botões: sem borda/fundo, hover suave, cantos arredondados */
+.imova-md-editor--light .toastui-editor-toolbar-icons {
+  border: 0;
+  margin: 1px;
+  border-radius: 6px;
+  background-color: transparent;
+  opacity: 0.7;
+}
+.imova-md-editor--light .toastui-editor-toolbar-icons:not(:disabled):hover {
+  border: 0;
+  background-color: #f1f5f9;
+  opacity: 1;
+}
+/* remove divisórias e bordas de grupo (o que deixava a barra "pesada") */
+.imova-md-editor--light .toastui-editor-toolbar-group {
+  margin: 0;
+}
+.imova-md-editor--light .toastui-editor-toolbar-divider {
+  display: none;
 }
 </style>
