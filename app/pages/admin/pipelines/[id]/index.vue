@@ -747,16 +747,8 @@ async function persistBoard() {
                   @click="open(o.id)"
                   @contextmenu.prevent="openCardMenu(o, $event)"
                 >
-                  <div class="flex items-start gap-2">
-                    <span class="text-[13.5px] font-semibold text-slate-900 leading-snug break-words flex-1 min-w-0">{{ oppTitle(o) }}</span>
-                    <!-- responsáveis no header, alinhados à direita (somem no hover p/ dar lugar ao ⋯) -->
-                    <AvatarStack
-                      v-if="o.assignees?.length"
-                      :users="o.assignees"
-                      :size="20"
-                      :max="3"
-                      class="shrink-0 ml-auto group-hover:opacity-0 transition-opacity"
-                    />
+                  <div class="pr-6">
+                    <span class="text-[13.5px] font-semibold text-slate-900 leading-snug break-words">{{ oppTitle(o) }}</span>
                   </div>
                   <!-- contato (só quando há título, p/ não duplicar) -->
                   <div v-if="o.title" class="text-[11.5px] text-slate-400 truncate mt-0.5">{{ o.contact.name }}</div>
@@ -782,9 +774,9 @@ async function persistBoard() {
                       >{{ nextActivity(o)!.label }}</span
                     >
                   </div>
-                  <!-- rodapé: indicadores (só o ícone, sem quantidade; só quando há) -->
+                  <!-- rodapé: indicadores (só o ícone, sem quantidade) + responsáveis à direita -->
                   <div
-                    v-if="o.description || o.documentsCount || o.comments?.length"
+                    v-if="o.description || o.documentsCount || o.comments?.length || o.assignees?.length"
                     class="flex items-center gap-2.5 mt-2.5 pt-2 border-t border-slate-100 text-slate-400"
                   >
                     <span v-if="o.description" class="inline-flex" title="Tem descrição">
@@ -802,6 +794,8 @@ async function persistBoard() {
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                       </svg>
                     </span>
+                    <!-- responsáveis à direita -->
+                    <AvatarStack v-if="o.assignees?.length" :users="o.assignees" :size="20" :max="3" class="ml-auto" />
                   </div>
                 </div>
               </template>
