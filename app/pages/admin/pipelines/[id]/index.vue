@@ -779,30 +779,25 @@ async function persistBoard() {
                       >{{ nextActivity(o)!.label }}</span
                     >
                   </div>
-                  <!-- rodapé: indicadores (só aparecem quando há) -->
+                  <!-- rodapé: indicadores (só o ícone, sem quantidade; só quando há) -->
                   <div
-                    v-if="o.documentsCount || o.comments?.length"
-                    class="flex items-center gap-3 mt-2.5 pt-2 border-t border-slate-100 text-slate-500"
+                    v-if="o.description || o.documentsCount || o.comments?.length"
+                    class="flex items-center gap-2.5 mt-2.5 pt-2 border-t border-slate-100 text-slate-400"
                   >
-                    <span
-                      v-if="o.documentsCount"
-                      class="inline-flex items-center gap-1 text-[11px] font-semibold"
-                      :title="o.documentsCount + ' documento(s) anexado(s)'"
-                    >
+                    <span v-if="o.description" class="inline-flex" title="Tem descrição">
+                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 6h16M4 12h16M4 18h10" />
+                      </svg>
+                    </span>
+                    <span v-if="o.documentsCount" class="inline-flex" title="Tem documentos anexados">
                       <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3 3 0 0 1 4.24 4.24l-9.19 9.19a1 1 0 0 1-1.41-1.41l8.48-8.49" />
                       </svg>
-                      {{ o.documentsCount }}
                     </span>
-                    <span
-                      v-if="o.comments?.length"
-                      class="inline-flex items-center gap-1 text-[11px] font-semibold"
-                      :title="o.comments.length + ' comentário(s)'"
-                    >
+                    <span v-if="o.comments?.length" class="inline-flex" title="Tem comentários">
                       <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                       </svg>
-                      {{ o.comments.length }}
                     </span>
                   </div>
                 </div>

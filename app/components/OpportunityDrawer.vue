@@ -293,18 +293,33 @@ const naIsFuture = computed(
   () => !isNota.value && !!naDue.value && new Date(naDue.value).getTime() > Date.now(),
 )
 
-// abas do drawer (a antiga "Oportunidade" saiu — ações vão pro kebab do header)
-const tab = ref<'atividades' | 'comentarios' | 'oportunidade' | 'historico' | 'dados'>('atividades')
+// abas do drawer — "Oportunidade" (descrição + documentos) é a primeira e padrão
+const tab = ref<'oportunidade' | 'atividades' | 'comentarios' | 'historico' | 'dados'>('oportunidade')
 
 // ── descrição (markdown) da oportunidade ──
 const descDraft = ref('')
+const savingDesc = ref(false)
+const descSaved = ref(false)
 const descDirty = computed(() => descDraft.value !== (sel.value?.description ?? ''))
 // (re)inicializa o rascunho ao abrir ou trocar de oportunidade
 watch([open, () => sel.value?.id], () => {
-  if (open.value) descDraft.value = sel.value?.description ?? ''
+  if (open.value) {
+    descDraft.value = sel.value?.description ?? ''
+    descSaved.value = false
+  }
 })
+function discardDescription() {
+  descDraft.value = sel.value?.description ?? ''
+}
 async function saveDescription() {
-  await patchSel({ description: descDraft.value })
+  savingDesc.value = true
+  try {
+    await patchSel({ description: descDraft.value })
+    descSaved.value = true
+    setTimeout(() => (descSaved.value = false), 2000)
+  } finally {
+    savingDesc.value = false
+  }
 }
 
 // ── comentários internos ──
@@ -374,7 +389,7 @@ async function deleteComment(c: OpportunityComment) {
 watch(open, (v) => {
   if (v) {
     naDue.value = nowLocal()
-    tab.value = 'atividades'
+    tab.value = 'oportunidade'
     scrollTimeline()
     refreshSel() // pega atividades/histórico atualizados por ações fora do drawer
   }
@@ -599,6 +614,14 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
           <div class="px-[22px] flex gap-4 overflow-x-auto">
             <button
               type="button"
+              class="pb-2.5 -mb-px text-[13px] font-semibold border-b-2 cursor-pointer bg-transparent transition-colors whitespace-nowrap"
+              :class="tab === 'oportunidade' ? 'text-brand border-brand' : 'text-slate-500 border-transparent hover:text-slate-700'"
+              @click="tab = 'oportunidade'"
+            >
+              Oportunidade
+            </button>
+            <button
+              type="button"
               class="pb-2.5 -mb-px text-[13px] font-semibold border-b-2 cursor-pointer bg-transparent transition-colors"
               :class="tab === 'atividades' ? 'text-brand border-brand' : 'text-slate-500 border-transparent hover:text-slate-700'"
               @click="tab = 'atividades'"
@@ -612,14 +635,6 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
               @click="tab = 'comentarios'"
             >
               Comentários<span v-if="comments.length" class="ml-1 text-slate-400">{{ comments.length }}</span>
-            </button>
-            <button
-              type="button"
-              class="pb-2.5 -mb-px text-[13px] font-semibold border-b-2 cursor-pointer bg-transparent transition-colors whitespace-nowrap"
-              :class="tab === 'oportunidade' ? 'text-brand border-brand' : 'text-slate-500 border-transparent hover:text-slate-700'"
-              @click="tab = 'oportunidade'"
-            >
-              Oportunidade
             </button>
             <button
               type="button"
@@ -732,32 +747,58 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
         </div>
 
         <!-- ABA OPORTUNIDADE (descrição em markdown + documentos) -->
-        <div v-show="tab === 'oportunidade'" class="flex-1 min-h-0 overflow-y-auto px-[22px] py-4 flex flex-col gap-6">
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <div class="text-[11.5px] font-bold uppercase tracking-[0.05em] text-slate-400">Descrição</div>
-              <button
-                v-if="descDirty"
-                type="button"
-                class="h-7 px-3 text-[12px] font-semibold text-white bg-brand rounded-md cursor-pointer border-none hover:bg-brand-dark"
-                @click="saveDescription"
-              >
-                Salvar
-              </button>
+        <div v-show="tab === 'oportunidade'" class="flex-1 min-h-0 overflow-y-auto px-[22px] py-5 flex flex-col gap-6">
+          <!-- Descrição -->
+          <section>
+            <div class="flex items-center gap-2 mb-2.5">
+              <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 6h16M4 12h16M4 18h10" />
+              </svg>
+              <h3 class="text-[13px] font-bold text-slate-800">Descrição</h3>
+              <!-- estado do salvamento, alinhado à direita -->
+              <span v-if="descSaved" class="ml-auto inline-flex items-center gap-1 text-[12px] font-semibold text-emerald-600">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                Salvo
+              </span>
+              <div v-else-if="descDirty" class="ml-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  class="h-7 px-2.5 text-[12px] font-semibold text-slate-500 rounded-md cursor-pointer bg-transparent border-none hover:bg-slate-100"
+                  @click="discardDescription"
+                >
+                  Descartar
+                </button>
+                <button
+                  type="button"
+                  :disabled="savingDesc"
+                  class="h-7 px-3.5 text-[12px] font-semibold text-white bg-brand rounded-md cursor-pointer border-none hover:bg-brand-dark disabled:opacity-60"
+                  @click="saveDescription"
+                >
+                  {{ savingDesc ? 'Salvando…' : 'Salvar' }}
+                </button>
+              </div>
             </div>
             <MarkdownEditor
               v-if="tab === 'oportunidade'"
               v-model="descDraft"
-              height="240px"
+              height="220px"
               initial-edit-type="markdown"
               preview-style="tab"
             />
-          </div>
+            <p class="mt-1.5 text-[11.5px] text-slate-400">Anotações internas sobre a oportunidade. Suporta markdown.</p>
+          </section>
 
-          <div>
-            <div class="text-[11.5px] font-bold uppercase tracking-[0.05em] text-slate-400 mb-2">Documentos</div>
+          <!-- Documentos -->
+          <section>
+            <div class="flex items-center gap-2 mb-2.5">
+              <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3 3 0 0 1 4.24 4.24l-9.19 9.19a1 1 0 0 1-1.41-1.41l8.48-8.49" />
+              </svg>
+              <h3 class="text-[13px] font-bold text-slate-800">Documentos</h3>
+              <span v-if="sel?.documentsCount" class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-slate-100 text-slate-500 text-[10.5px] font-bold">{{ sel.documentsCount }}</span>
+            </div>
             <DocumentsPanel v-if="sel" :contact-id="sel.contact.id" :opportunity-id="sel.id" @changed="refreshSel" />
-          </div>
+          </section>
         </div>
 
         <!-- ABA HISTÓRICO (log read-only de alterações/movimentações) -->
