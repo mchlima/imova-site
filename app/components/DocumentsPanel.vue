@@ -79,6 +79,18 @@ async function onFiles(e: Event) {
   }
 }
 
+// preview inline (modal) para imagem/PDF; demais tipos abrem/baixam em nova aba
+const previewDoc = ref<DocumentItem | null>(null)
+const previewUrl = ref('')
+const previewIsImage = computed(() => !!previewDoc.value?.mimeType.startsWith('image/'))
+function canPreview(mime: string) {
+  return mime === 'application/pdf' || mime.startsWith('image/')
+}
+function closePreview() {
+  previewDoc.value = null
+  previewUrl.value = ''
+}
+
 async function openDoc(d: DocumentItem, download = false) {
   try {
     const { url } = await $fetch<{ url: string }>(`/documents/${d.id}/url`, {
@@ -86,7 +98,12 @@ async function openDoc(d: DocumentItem, download = false) {
       credentials: 'include',
       params: download ? { download: '1' } : {},
     })
-    window.open(url, '_blank')
+    if (!download && canPreview(d.mimeType)) {
+      previewDoc.value = d
+      previewUrl.value = url
+    } else {
+      window.open(url, '_blank') // download ou tipo sem preview (Office)
+    }
   } catch {
     error.value = 'Não foi possível abrir o documento.'
   }
@@ -158,4 +175,48 @@ async function removeDoc(d: DocumentItem) {
       </div>
     </div>
   </div>
+
+  <!-- modal de preview (imagem/PDF) -->
+  <Teleport to="body">
+    <div
+      v-if="previewDoc"
+      class="fixed inset-0 z-[80] bg-slate-900/70 flex flex-col p-4 sm:p-8"
+      @click.self="closePreview"
+    >
+      <div class="flex items-center gap-3 text-white mb-3 shrink-0">
+        <span class="text-[14px] font-semibold truncate">{{ previewDoc.fileName }}</span>
+        <div class="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            class="h-8 px-3 text-[12.5px] font-semibold text-slate-800 bg-white rounded-md cursor-pointer border-none hover:bg-slate-100"
+            @click="openDoc(previewDoc, true)"
+          >
+            Baixar
+          </button>
+          <button
+            type="button"
+            class="h-8 w-8 inline-flex items-center justify-center text-white bg-white/15 hover:bg-white/25 rounded-md cursor-pointer border-none text-[16px]"
+            title="Fechar"
+            @click="closePreview"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+      <div class="flex-1 min-h-0 flex items-center justify-center">
+        <img
+          v-if="previewIsImage"
+          :src="previewUrl"
+          :alt="previewDoc.fileName"
+          class="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+        />
+        <iframe
+          v-else
+          :src="previewUrl"
+          class="w-full h-full bg-white rounded-lg"
+          title="Pré-visualização"
+        ></iframe>
+      </div>
+    </div>
+  </Teleport>
 </template>

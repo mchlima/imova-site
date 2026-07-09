@@ -2,13 +2,40 @@
 import { type DocumentItem, fmtFileSize, fileEmoji } from '~/utils/documentModel'
 import { fmtDateTime } from '~/utils/opportunityModel'
 
-defineProps<{ doc: DocumentItem }>()
+const props = defineProps<{ doc: DocumentItem }>()
 const emit = defineEmits<{ open: [DocumentItem, boolean]; remove: [DocumentItem] }>()
+
+const apiBase = useRuntimeConfig().public.apiBase
+const isImage = computed(() => props.doc.mimeType.startsWith('image/'))
+const thumbUrl = ref('')
+
+// miniatura de imagens: busca uma URL pré-assinada (inline) sob demanda
+onMounted(async () => {
+  if (!isImage.value) return
+  try {
+    const { url } = await $fetch<{ url: string }>(`/documents/${props.doc.id}/url`, {
+      baseURL: apiBase,
+      credentials: 'include',
+    })
+    thumbUrl.value = url
+  } catch {
+    /* sem miniatura; cai no ícone */
+  }
+})
 </script>
 
 <template>
   <div class="group/doc flex items-center gap-3 bg-white border border-slate-200 rounded-[10px] px-3 py-2.5">
-    <span class="text-[20px] leading-none shrink-0">{{ fileEmoji(doc.mimeType) }}</span>
+    <!-- miniatura (imagem) ou ícone -->
+    <button
+      type="button"
+      class="shrink-0 w-10 h-10 rounded-md overflow-hidden flex items-center justify-center bg-slate-50 border border-slate-100 cursor-pointer p-0"
+      title="Ver"
+      @click="emit('open', doc, false)"
+    >
+      <img v-if="isImage && thumbUrl" :src="thumbUrl" alt="" class="w-full h-full object-cover" />
+      <span v-else class="text-[20px] leading-none">{{ fileEmoji(doc.mimeType) }}</span>
+    </button>
     <div class="min-w-0 flex-1">
       <div class="text-[13px] font-semibold text-slate-800 truncate">{{ doc.fileName }}</div>
       <div class="text-[11.5px] text-slate-400 truncate">
