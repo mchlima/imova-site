@@ -294,7 +294,18 @@ const naIsFuture = computed(
 )
 
 // abas do drawer (a antiga "Oportunidade" saiu — ações vão pro kebab do header)
-const tab = ref<'atividades' | 'comentarios' | 'documentos' | 'historico' | 'dados'>('atividades')
+const tab = ref<'atividades' | 'comentarios' | 'oportunidade' | 'historico' | 'dados'>('atividades')
+
+// ── descrição (markdown) da oportunidade ──
+const descDraft = ref('')
+const descDirty = computed(() => descDraft.value !== (sel.value?.description ?? ''))
+// (re)inicializa o rascunho ao abrir ou trocar de oportunidade
+watch([open, () => sel.value?.id], () => {
+  if (open.value) descDraft.value = sel.value?.description ?? ''
+})
+async function saveDescription() {
+  await patchSel({ description: descDraft.value })
+}
 
 // ── comentários internos ──
 const { user: authUser } = useAuth()
@@ -605,10 +616,10 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
             <button
               type="button"
               class="pb-2.5 -mb-px text-[13px] font-semibold border-b-2 cursor-pointer bg-transparent transition-colors whitespace-nowrap"
-              :class="tab === 'documentos' ? 'text-brand border-brand' : 'text-slate-500 border-transparent hover:text-slate-700'"
-              @click="tab = 'documentos'"
+              :class="tab === 'oportunidade' ? 'text-brand border-brand' : 'text-slate-500 border-transparent hover:text-slate-700'"
+              @click="tab = 'oportunidade'"
             >
-              Documentos
+              Oportunidade
             </button>
             <button
               type="button"
@@ -720,9 +731,33 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
           </div>
         </div>
 
-        <!-- ABA DOCUMENTOS (arquivos do lead — R2 privado) -->
-        <div v-show="tab === 'documentos'" class="flex-1 min-h-0 overflow-y-auto px-[22px] py-4">
-          <DocumentsPanel v-if="sel" :contact-id="sel.contact.id" :opportunity-id="sel.id" @changed="refreshSel" />
+        <!-- ABA OPORTUNIDADE (descrição em markdown + documentos) -->
+        <div v-show="tab === 'oportunidade'" class="flex-1 min-h-0 overflow-y-auto px-[22px] py-4 flex flex-col gap-6">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <div class="text-[11.5px] font-bold uppercase tracking-[0.05em] text-slate-400">Descrição</div>
+              <button
+                v-if="descDirty"
+                type="button"
+                class="h-7 px-3 text-[12px] font-semibold text-white bg-brand rounded-md cursor-pointer border-none hover:bg-brand-dark"
+                @click="saveDescription"
+              >
+                Salvar
+              </button>
+            </div>
+            <MarkdownEditor
+              v-if="tab === 'oportunidade'"
+              v-model="descDraft"
+              height="240px"
+              initial-edit-type="markdown"
+              preview-style="tab"
+            />
+          </div>
+
+          <div>
+            <div class="text-[11.5px] font-bold uppercase tracking-[0.05em] text-slate-400 mb-2">Documentos</div>
+            <DocumentsPanel v-if="sel" :contact-id="sel.contact.id" :opportunity-id="sel.id" @changed="refreshSel" />
+          </div>
         </div>
 
         <!-- ABA HISTÓRICO (log read-only de alterações/movimentações) -->

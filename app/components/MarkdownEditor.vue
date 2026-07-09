@@ -3,6 +3,14 @@
 // tabs let the author switch between "Markdown" (raw) and "WYSIWYG" (visual) and
 // write in either mode. Browser-only — mounted on the client.
 const model = defineModel<string>({ default: '' })
+const props = withDefaults(
+  defineProps<{
+    height?: string
+    initialEditType?: 'markdown' | 'wysiwyg'
+    previewStyle?: 'vertical' | 'tab'
+  }>(),
+  { height: '520px', initialEditType: 'wysiwyg', previewStyle: 'vertical' },
+)
 
 const el = ref<HTMLElement | null>(null)
 let editor: { getMarkdown: () => string; setMarkdown: (v: string, cursor?: boolean) => void; destroy: () => void } | null =
@@ -17,9 +25,9 @@ onMounted(async () => {
   if (!el.value) return
   editor = new Editor({
     el: el.value,
-    height: '520px',
-    initialEditType: 'wysiwyg',
-    previewStyle: 'vertical',
+    height: props.height,
+    initialEditType: props.initialEditType,
+    previewStyle: props.previewStyle,
     hideModeSwitch: false,
     usageStatistics: false,
     initialValue: model.value || '',
@@ -55,7 +63,8 @@ onBeforeUnmount(() => {
     <div ref="el" class="imova-md-editor"></div>
     <template #fallback>
       <div
-        class="h-[520px] flex items-center justify-center text-slate-400 text-[14px] border border-slate-200 rounded-lg bg-slate-50"
+        class="flex items-center justify-center text-slate-400 text-[14px] border border-slate-200 rounded-lg bg-slate-50"
+        :style="{ height: props.height }"
       >
         Carregando editor…
       </div>
