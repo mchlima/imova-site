@@ -708,7 +708,7 @@ async function persistBoard() {
           <div
             v-for="col in boardCols"
             :key="col.stageId"
-            class="group/col w-[296px] shrink-0 bg-slate-100/70 rounded-xl p-2.5 flex flex-col overflow-hidden"
+            class="group/col w-[320px] shrink-0 bg-slate-100/70 rounded-xl p-2.5 flex flex-col overflow-hidden"
           >
             <!-- header da coluna -->
             <div class="flex items-center gap-2 px-2 py-2">
@@ -747,8 +747,8 @@ async function persistBoard() {
                   @click="open(o.id)"
                   @contextmenu.prevent="openCardMenu(o, $event)"
                 >
-                  <div class="flex items-center gap-2">
-                    <span class="text-[13.5px] font-semibold text-slate-900 truncate flex-1">{{ oppTitle(o) }}</span>
+                  <div class="flex items-start gap-2">
+                    <span class="text-[13.5px] font-semibold text-slate-900 leading-snug break-words flex-1 min-w-0">{{ oppTitle(o) }}</span>
                     <!-- responsáveis no header, alinhados à direita (somem no hover p/ dar lugar ao ⋯) -->
                     <AvatarStack
                       v-if="o.assignees?.length"
