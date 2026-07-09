@@ -133,7 +133,7 @@ const th = 'text-left py-3 px-3 text-[11px] font-bold uppercase tracking-[0.04em
             </tbody>
           </table>
         </div>
-        <div v-if="loading" class="text-center py-12 text-slate-400 text-[14px]">Carregando…</div>
+        <SkeletonTable v-if="loading" :rows="8" :cols="4" />
         <div v-else-if="loadError" class="text-center py-12 text-red-600 text-[14px]">
           Não foi possível carregar. <button class="ml-2 underline font-semibold" @click="load">Tentar de novo</button>
         </div>

@@ -639,12 +639,7 @@ async function persistBoard() {
             </tbody>
           </table>
         </div>
-        <div
-          v-if="loading"
-          class="text-center py-12 px-5 text-slate-400 text-[14px]"
-        >
-          Carregando oportunidades…
-        </div>
+        <SkeletonTable v-if="loading" :rows="8" :cols="4" />
         <div
           v-else-if="loadError"
           class="text-center py-12 px-5 text-red-600 text-[14px]"
@@ -695,9 +690,7 @@ async function persistBoard() {
            Fura o padding da página (-mx/-mb) para o scroll horizontal ocupar a
            largura toda e encostar na base; o espaçamento vira padding interno. -->
       <div v-else class="flex-1 min-h-0 flex flex-col -mx-4 sm:-mx-6 -mb-4 sm:-mb-6">
-        <div v-if="loading" class="text-center py-12 text-slate-400 text-[14px]">
-          Carregando oportunidades…
-        </div>
+        <SkeletonKanban v-if="loading" />
         <div v-else-if="loadError" class="text-center py-12 text-red-600 text-[14px]">
           Não foi possível carregar as oportunidades.
           <button class="ml-2 font-semibold underline" @click="loadOpportunities">

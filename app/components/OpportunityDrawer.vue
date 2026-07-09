@@ -899,9 +899,10 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
                 <button
                   type="button"
                   :disabled="savingDesc"
-                  class="h-7 px-3.5 text-[12px] font-semibold text-white bg-brand rounded-md cursor-pointer border-none hover:bg-brand-dark disabled:opacity-60"
+                  class="h-7 px-3.5 inline-flex items-center gap-1.5 text-[12px] font-semibold text-white bg-brand rounded-md cursor-pointer border-none hover:bg-brand-dark disabled:opacity-60"
                   @click="saveDescription"
                 >
+                  <AppSpinner v-if="savingDesc" :size="13" />
                   {{ savingDesc ? 'Salvando…' : 'Salvar' }}
                 </button>
               </div>

@@ -93,9 +93,7 @@ const recent = computed(() => opportunities.value.slice(0, 5))
         >
       </div>
 
-      <div v-if="loading" class="px-5 py-10 text-center text-slate-400 text-[14px]">
-        Carregando…
-      </div>
+      <SkeletonTable v-if="loading" :rows="5" :cols="4" />
       <div
         v-else-if="recent.length === 0"
         class="px-5 py-10 text-center text-slate-400 text-[14px]"

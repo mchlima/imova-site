@@ -296,7 +296,7 @@ const th = 'py-3 px-3 text-left text-[11px] font-bold uppercase tracking-[0.04em
         </table>
       </div>
 
-      <div v-if="loading" class="py-12 text-center text-slate-400 text-[14px]">Carregando…</div>
+      <SkeletonTable v-if="loading" :rows="8" :cols="4" />
       <div v-else-if="loadError" class="py-12 text-center text-red-500 text-[14px]">
         Erro ao carregar. <button class="underline" @click="load">Tentar de novo</button>
       </div>
