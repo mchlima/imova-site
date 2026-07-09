@@ -420,6 +420,21 @@ const tasks = computed(() => sel.value?.tasks ?? [])
 const doneTasks = computed(() => tasks.value.filter((t) => t.done).length)
 const newTask = ref('')
 const addingTask = ref(false)
+// o input só aparece ao clicar na linha sutil "Adicionar tarefa"
+const addingTaskOpen = ref(false)
+const taskInput = ref<HTMLInputElement | null>(null)
+function openAddTask() {
+  addingTaskOpen.value = true
+  nextTick(() => taskInput.value?.focus())
+}
+function closeAddTask() {
+  addingTaskOpen.value = false
+  newTask.value = ''
+}
+// ao sair do campo vazio, volta pra linha sutil
+function onTaskBlur() {
+  if (!newTask.value.trim()) closeAddTask()
+}
 async function addTask() {
   const id = sel.value?.id
   const title = newTask.value.trim()
@@ -434,6 +449,8 @@ async function addTask() {
     })
     newTask.value = ''
     emit('updated', mapOpportunity(updated))
+    // mantém o campo aberto e focado para adicionar várias em sequência
+    nextTick(() => taskInput.value?.focus())
   } finally {
     addingTask.value = false
   }
@@ -912,7 +929,7 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
               <span v-if="tasks.length" class="inline-flex items-center h-[18px] px-1.5 rounded-full bg-slate-100 text-slate-500 text-[10.5px] font-bold">{{ doneTasks }}/{{ tasks.length }}</span>
             </div>
 
-            <div v-if="tasks.length" class="flex flex-col gap-0.5 mb-2">
+            <div class="flex flex-col gap-0.5">
               <div
                 v-for="t in tasks"
                 :key="t.id"
@@ -940,25 +957,39 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
                   <svg class="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
                 </button>
               </div>
-            </div>
-            <p v-else class="text-[12.5px] text-slate-400 mb-2">Nenhuma tarefa ainda.</p>
 
-            <form class="flex items-center gap-2" @submit.prevent="addTask">
-              <input
-                v-model="newTask"
-                type="text"
-                maxlength="200"
-                placeholder="Adicionar tarefa…"
-                class="flex-1 h-9 px-3 text-[13px] border border-slate-200 rounded-lg outline-none focus:border-brand"
-              />
+              <!-- linha sutil "Adicionar tarefa" — vira input ao clicar -->
               <button
-                type="submit"
-                :disabled="!newTask.trim() || addingTask"
-                class="h-9 px-3.5 text-[12.5px] font-semibold text-white bg-brand rounded-lg cursor-pointer border-none hover:bg-brand-dark disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                v-if="!addingTaskOpen"
+                type="button"
+                class="group/add flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 cursor-pointer bg-transparent border-none text-left transition-colors"
+                @click="openAddTask"
               >
-                Adicionar
+                <span class="w-[18px] h-[18px] rounded-[5px] border border-dashed border-slate-300 inline-flex items-center justify-center shrink-0 group-hover/add:border-brand">
+                  <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+                </span>
+                <span class="text-[13px]">Adicionar tarefa</span>
               </button>
-            </form>
+              <form v-else class="flex items-center gap-2 px-2 py-1" @submit.prevent="addTask">
+                <input
+                  ref="taskInput"
+                  v-model="newTask"
+                  type="text"
+                  maxlength="200"
+                  placeholder="Nova tarefa…"
+                  class="flex-1 h-9 px-3 text-[13px] border border-slate-200 rounded-lg outline-none focus:border-brand"
+                  @keydown.esc="closeAddTask"
+                  @blur="onTaskBlur"
+                />
+                <button
+                  type="submit"
+                  :disabled="!newTask.trim() || addingTask"
+                  class="h-9 px-3.5 text-[12.5px] font-semibold text-white bg-brand rounded-lg cursor-pointer border-none hover:bg-brand-dark disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                >
+                  Adicionar
+                </button>
+              </form>
+            </div>
           </section>
 
           <!-- Documentos -->
