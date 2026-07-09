@@ -243,18 +243,18 @@ function nextActivity(l: Opportunity) {
 const th =
   'text-left py-3 px-3 text-[11px] font-bold uppercase tracking-[0.04em] text-slate-400'
 
-// ── visualização: lista | kanban (persistida no navegador) ──
-const view = ref<'list' | 'kanban'>('list')
-onMounted(() => {
-  const saved = localStorage.getItem('imova_opp_view')
-  if (saved === 'kanban' || saved === 'list') view.value = saved
+// ── visualização: lista | kanban ──
+// Persistida em COOKIE (não localStorage) para o SSR já renderizar a visão certa
+// — e, com ela, o skeleton correspondente — evitando o flash da lista e hydration
+// mismatch quando a preferência é o quadro.
+const viewCookie = useCookie<'list' | 'kanban'>('imova_opp_view', {
+  default: () => 'list',
+  sameSite: 'lax',
+  maxAge: 60 * 60 * 24 * 365,
 })
+const view = ref<'list' | 'kanban'>(viewCookie.value === 'kanban' ? 'kanban' : 'list')
 watch(view, (v) => {
-  try {
-    localStorage.setItem('imova_opp_view', v)
-  } catch {
-    /* ignore */
-  }
+  viewCookie.value = v
 })
 
 // Kanban: só os estágios marcados como inKanban no funil do tenant (os finais,
