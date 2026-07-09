@@ -781,11 +781,13 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
             <MarkdownEditor
               v-if="tab === 'oportunidade'"
               v-model="descDraft"
-              height="220px"
-              initial-edit-type="markdown"
-              preview-style="tab"
+              height="260px"
+              initial-edit-type="wysiwyg"
+              :hide-mode-switch="true"
+              toolbar="simple"
+              placeholder="Escreva uma descrição da oportunidade…"
             />
-            <p class="mt-1.5 text-[11.5px] text-slate-400">Anotações internas sobre a oportunidade. Suporta markdown.</p>
+            <p class="mt-1.5 text-[11.5px] text-slate-400">Anotações internas: negociação, contexto e próximos passos.</p>
           </section>
 
           <!-- Documentos -->

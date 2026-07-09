@@ -8,9 +8,32 @@ const props = withDefaults(
     height?: string
     initialEditType?: 'markdown' | 'wysiwyg'
     previewStyle?: 'vertical' | 'tab'
+    // esconde o alternador Markdown/WYSIWYG do rodapé (evita confusão em editores simples)
+    hideModeSwitch?: boolean
+    // 'full' = barra completa (CMS); 'simple' = essencial (negrito, listas, etc.)
+    toolbar?: 'full' | 'simple'
+    placeholder?: string
   }>(),
-  { height: '520px', initialEditType: 'wysiwyg', previewStyle: 'vertical' },
+  {
+    height: '520px',
+    initialEditType: 'wysiwyg',
+    previewStyle: 'vertical',
+    hideModeSwitch: false,
+    toolbar: 'full',
+    placeholder: '',
+  },
 )
+
+const TOOLBARS = {
+  full: [
+    ['heading', 'bold', 'italic', 'strike'],
+    ['hr', 'quote'],
+    ['ul', 'ol', 'task'],
+    ['table', 'link'],
+    ['code', 'codeblock'],
+  ],
+  simple: [['heading', 'bold', 'italic'], ['ul', 'ol'], ['quote', 'link']],
+}
 
 const el = ref<HTMLElement | null>(null)
 let editor: { getMarkdown: () => string; setMarkdown: (v: string, cursor?: boolean) => void; destroy: () => void } | null =
@@ -28,17 +51,12 @@ onMounted(async () => {
     height: props.height,
     initialEditType: props.initialEditType,
     previewStyle: props.previewStyle,
-    hideModeSwitch: false,
+    hideModeSwitch: props.hideModeSwitch,
     usageStatistics: false,
     initialValue: model.value || '',
     autofocus: false,
-    toolbarItems: [
-      ['heading', 'bold', 'italic', 'strike'],
-      ['hr', 'quote'],
-      ['ul', 'ol', 'task'],
-      ['table', 'link'],
-      ['code', 'codeblock'],
-    ],
+    placeholder: props.placeholder,
+    toolbarItems: TOOLBARS[props.toolbar],
     events: {
       change: () => {
         if (editor) model.value = editor.getMarkdown()
@@ -83,6 +101,22 @@ onBeforeUnmount(() => {
 .imova-md-editor .toastui-editor-toolbar {
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
+}
+/* conteúdo mais legível e alinhado à tipografia do app */
+.imova-md-editor .toastui-editor-contents {
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.65;
+}
+/* placeholder mais suave */
+.imova-md-editor .toastui-editor-defaultUI .placeholder,
+.imova-md-editor .toastui-editor .placeholder {
+  color: #94a3b8;
+}
+/* realça o editor ao focar */
+.imova-md-editor .toastui-editor-defaultUI:focus-within {
+  border-color: #146c4e;
+  box-shadow: 0 0 0 3px rgba(20, 108, 78, 0.12);
 }
 .imova-md-editor .toastui-editor-mode-switch {
   border-bottom-left-radius: 12px;
