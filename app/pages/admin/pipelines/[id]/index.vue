@@ -776,12 +776,18 @@ async function persistBoard() {
                   </div>
                   <!-- rodapé: indicadores (só o ícone, sem quantidade) + responsáveis à direita -->
                   <div
-                    v-if="o.description || o.documentsCount || o.comments?.length || o.assignees?.length"
+                    v-if="o.description || o.tasks?.length || o.documentsCount || o.comments?.length || o.assignees?.length"
                     class="flex items-center gap-2.5 mt-2.5 pt-2 border-t border-slate-100 text-slate-400"
                   >
                     <span v-if="o.description" class="inline-flex" title="Tem descrição">
                       <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M4 6h16M4 12h16M4 18h10" />
+                      </svg>
+                    </span>
+                    <span v-if="o.tasks?.length" class="inline-flex" title="Tem tarefas">
+                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 11l3 3L22 4" />
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
                       </svg>
                     </span>
                     <span v-if="o.documentsCount" class="inline-flex" title="Tem documentos anexados">
