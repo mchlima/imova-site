@@ -123,6 +123,8 @@ export interface Opportunity {
   events: OpportunityEvent[]
   // comentários internos (mais antigo primeiro)
   comments: OpportunityComment[]
+  // nº de documentos anexados A ESTA oportunidade (indicador no card)
+  documentsCount: number
   // responsáveis (0..N) — vêm do backend como { id, name }
   assignees: Assignee[]
 }
@@ -148,9 +150,11 @@ export const avatarColor = (seed: string) => {
   return AVATAR_COLORS[h % AVATAR_COLORS.length]
 }
 
-export type RawOpportunity = Omit<Opportunity, 'date'> & {
+export type RawOpportunity = Omit<Opportunity, 'date' | 'documentsCount'> & {
   createdAt: string
   activities: Activity[]
+  // contagem de relações vinda do Prisma (_count)
+  _count?: { documents?: number }
 }
 
 // Dados de INTERESSE vêm do simulador (seção 'simulador' em fields). O backend é
@@ -209,6 +213,7 @@ export function mapOpportunity(r: RawOpportunity): Opportunity {
   return {
     ...r,
     date: fmtOpportunityDate(r.createdAt),
+    documentsCount: r._count?.documents ?? 0,
   }
 }
 

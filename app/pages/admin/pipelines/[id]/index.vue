@@ -746,8 +746,16 @@ async function persistBoard() {
                   @click="open(o.id)"
                   @contextmenu.prevent="openCardMenu(o, $event)"
                 >
-                  <div class="flex items-start gap-2">
-                    <span class="text-[13.5px] font-semibold text-slate-900 truncate">{{ o.contact.name }}</span>
+                  <div class="flex items-center gap-2 pr-6">
+                    <span class="text-[13.5px] font-semibold text-slate-900 truncate flex-1">{{ o.contact.name }}</span>
+                    <!-- responsáveis no header (some no hover p/ dar lugar ao ⋯) -->
+                    <AvatarStack
+                      v-if="o.assignees?.length"
+                      :users="o.assignees"
+                      :size="20"
+                      :max="3"
+                      class="shrink-0 group-hover:opacity-0 transition-opacity"
+                    />
                   </div>
                   <!-- ações rápidas (⋯) — aparece no hover; não abre o drawer nem arrasta -->
                   <button
@@ -771,8 +779,18 @@ async function persistBoard() {
                       >{{ nextActivity(o)!.label }}</span
                     >
                   </div>
-                  <div v-if="o.assignees?.length" class="flex justify-end mt-2.5">
-                    <AvatarStack :users="o.assignees" :size="24" :max="4" />
+                  <!-- rodapé: indicadores (anexos) -->
+                  <div class="flex items-center gap-3 mt-2.5 pt-2 border-t border-slate-100">
+                    <span
+                      class="inline-flex items-center gap-1 text-[11px] font-semibold"
+                      :class="o.documentsCount ? 'text-slate-500' : 'text-slate-300'"
+                      :title="o.documentsCount ? o.documentsCount + ' documento(s) anexado(s)' : 'Sem documentos anexados'"
+                    >
+                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3 3 0 0 1 4.24 4.24l-9.19 9.19a1 1 0 0 1-1.41-1.41l8.48-8.49" />
+                      </svg>
+                      <span v-if="o.documentsCount">{{ o.documentsCount }}</span>
+                    </span>
                   </div>
                 </div>
               </template>
