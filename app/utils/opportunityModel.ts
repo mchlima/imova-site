@@ -32,6 +32,14 @@ export interface OpportunityComment {
   createdAt: string
   updatedAt: string
 }
+// Item da checklist de tarefas da oportunidade (aba "Oportunidade").
+export interface OpportunityTask {
+  id: string
+  title: string
+  done: boolean
+  completedAt: string | null
+  createdAt: string
+}
 // Forma de contato (vários por pessoa): email | whatsapp | telefone | outro.
 export interface ContactChannel {
   id: string
@@ -127,6 +135,8 @@ export interface Opportunity {
   events: OpportunityEvent[]
   // comentários internos (mais antigo primeiro)
   comments: OpportunityComment[]
+  // checklist de tarefas (mais antiga primeiro)
+  tasks: OpportunityTask[]
   // nº de documentos anexados A ESTA oportunidade (indicador no card)
   documentsCount: number
   // responsáveis (0..N) — vêm do backend como { id, name }

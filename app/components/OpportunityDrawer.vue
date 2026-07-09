@@ -4,6 +4,7 @@ import {
   type Contact,
   type Activity,
   type OpportunityComment,
+  type OpportunityTask,
   type RawOpportunity,
   mapOpportunity,
   formatResidence,
@@ -215,6 +216,8 @@ const EVENT_ICONS: Record<string, string> = {
   fields_updated: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
   document_added: '<path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3 3 0 0 1 4.24 4.24l-9.19 9.19a1 1 0 0 1-1.41-1.41l8.48-8.49"/>',
   document_removed: '<path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3 3 0 0 1 4.24 4.24l-9.19 9.19a1 1 0 0 1-1.41-1.41l8.48-8.49"/>',
+  task_completed: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+  task_reopened: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
 }
 const EvIcon = (props: { type: string; size?: number }) =>
   h('svg', {
@@ -239,6 +242,8 @@ const EVENT_COLORS: Record<string, string> = {
   fields_updated: '#64748b',
   document_added: '#0f766e',
   document_removed: '#be123c',
+  task_completed: '#146c4e',
+  task_reopened: '#c2410c',
 }
 const eventColor = (t: string) => EVENT_COLORS[t] || '#64748b'
 // eventos já vêm do backend do mais recente para o mais antigo
@@ -271,6 +276,10 @@ function eventText(e: { type: string; data: Record<string, unknown> }) {
       return `Anexou documento: ${d.fileName || ''}`
     case 'document_removed':
       return `Removeu documento: ${d.fileName || ''}`
+    case 'task_completed':
+      return `Concluiu a tarefa: ${d.title || ''}`
+    case 'task_reopened':
+      return `Reabriu a tarefa: ${d.title || ''}`
     default:
       return e.type
   }
@@ -399,6 +408,51 @@ async function deleteComment(c: OpportunityComment) {
   const id = sel.value?.id
   if (!id) return
   const updated = await $fetch<RawOpportunity>(`/opportunities/${id}/comments/${c.id}`, {
+    baseURL: apiBase,
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  emit('updated', mapOpportunity(updated))
+}
+
+// ── tarefas (checklist) ──
+const tasks = computed(() => sel.value?.tasks ?? [])
+const doneTasks = computed(() => tasks.value.filter((t) => t.done).length)
+const newTask = ref('')
+const addingTask = ref(false)
+async function addTask() {
+  const id = sel.value?.id
+  const title = newTask.value.trim()
+  if (!id || !title || addingTask.value) return
+  addingTask.value = true
+  try {
+    const updated = await $fetch<RawOpportunity>(`/opportunities/${id}/tasks`, {
+      baseURL: apiBase,
+      method: 'POST',
+      credentials: 'include',
+      body: { title },
+    })
+    newTask.value = ''
+    emit('updated', mapOpportunity(updated))
+  } finally {
+    addingTask.value = false
+  }
+}
+async function toggleTask(t: OpportunityTask) {
+  const id = sel.value?.id
+  if (!id) return
+  const updated = await $fetch<RawOpportunity>(`/opportunities/${id}/tasks/${t.id}`, {
+    baseURL: apiBase,
+    method: 'PATCH',
+    credentials: 'include',
+    body: { done: !t.done },
+  })
+  emit('updated', mapOpportunity(updated))
+}
+async function removeTask(t: OpportunityTask) {
+  const id = sel.value?.id
+  if (!id) return
+  const updated = await $fetch<RawOpportunity>(`/opportunities/${id}/tasks/${t.id}`, {
     baseURL: apiBase,
     method: 'DELETE',
     credentials: 'include',
@@ -845,6 +899,66 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
               placeholder="Escreva uma descrição da oportunidade…"
             />
             <p class="mt-1.5 text-[11.5px] text-slate-400">Anotações internas: negociação, contexto e próximos passos.</p>
+          </section>
+
+          <!-- Tarefas (checklist) -->
+          <section>
+            <div class="flex items-center gap-2 mb-2.5">
+              <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 11l3 3L22 4" />
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+              </svg>
+              <h3 class="text-[13px] font-bold text-slate-800">Tarefas</h3>
+              <span v-if="tasks.length" class="inline-flex items-center h-[18px] px-1.5 rounded-full bg-slate-100 text-slate-500 text-[10.5px] font-bold">{{ doneTasks }}/{{ tasks.length }}</span>
+            </div>
+
+            <div v-if="tasks.length" class="flex flex-col gap-0.5 mb-2">
+              <div
+                v-for="t in tasks"
+                :key="t.id"
+                class="group/task flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-slate-50"
+              >
+                <button
+                  type="button"
+                  class="w-[18px] h-[18px] rounded-[5px] inline-flex items-center justify-center shrink-0 cursor-pointer transition-colors"
+                  :class="t.done ? 'bg-brand border border-brand text-white' : 'bg-white border border-slate-300 text-transparent hover:border-brand'"
+                  :title="t.done ? 'Marcar como não concluída' : 'Marcar como concluída'"
+                  @click="toggleTask(t)"
+                >
+                  <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                </button>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[13px] break-words" :class="t.done ? 'line-through text-slate-400' : 'text-slate-700'">{{ t.title }}</div>
+                  <div v-if="t.done && t.completedAt" class="text-[11px] text-slate-400">Concluída em {{ fmtDateTime(t.completedAt) }}</div>
+                </div>
+                <button
+                  type="button"
+                  class="w-6 h-6 inline-flex items-center justify-center rounded-md text-slate-400 opacity-0 group-hover/task:opacity-100 hover:bg-rose-50 hover:text-rose-600 cursor-pointer bg-transparent border-none shrink-0 transition-all"
+                  title="Excluir tarefa"
+                  @click="removeTask(t)"
+                >
+                  <svg class="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
+                </button>
+              </div>
+            </div>
+            <p v-else class="text-[12.5px] text-slate-400 mb-2">Nenhuma tarefa ainda.</p>
+
+            <form class="flex items-center gap-2" @submit.prevent="addTask">
+              <input
+                v-model="newTask"
+                type="text"
+                maxlength="200"
+                placeholder="Adicionar tarefa…"
+                class="flex-1 h-9 px-3 text-[13px] border border-slate-200 rounded-lg outline-none focus:border-brand"
+              />
+              <button
+                type="submit"
+                :disabled="!newTask.trim() || addingTask"
+                class="h-9 px-3.5 text-[12.5px] font-semibold text-white bg-brand rounded-lg cursor-pointer border-none hover:bg-brand-dark disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+              >
+                Adicionar
+              </button>
+            </form>
           </section>
 
           <!-- Documentos -->
