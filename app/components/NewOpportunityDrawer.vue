@@ -290,10 +290,11 @@ const seg = 'h-[34px] px-3 text-[13px] font-semibold rounded-md cursor-pointer b
               Cancelar
             </button>
             <button
-              class="h-9 px-4 text-[13px] font-semibold text-white bg-brand rounded-lg cursor-pointer border-none hover:bg-brand-dark disabled:opacity-50"
+              class="h-9 px-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-brand rounded-lg cursor-pointer border-none hover:bg-brand-dark disabled:opacity-50"
               :disabled="saving"
               @click="create"
             >
+              <AppSpinner v-if="saving" :size="14" />
               {{ saving ? 'Criando…' : 'Criar oportunidade' }}
             </button>
           </div>

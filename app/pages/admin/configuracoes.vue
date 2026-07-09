@@ -157,7 +157,7 @@ const ico = 'inline-flex items-center justify-center w-7 h-7 rounded-md text-sla
       subtitle="Campos personalizados do CRM — valem para todos os pipelines. As etapas do funil ficam em cada pipeline."
     />
 
-    <div v-if="loading" class="text-slate-400 text-[14px] py-12 text-center">Carregando…</div>
+    <SkeletonForm v-if="loading" :rows="4" />
 
     <div v-else class="max-w-[840px]">
       <section>

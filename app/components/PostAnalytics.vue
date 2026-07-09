@@ -47,7 +47,14 @@ const cardTitle = 'text-[13px] font-bold uppercase tracking-[0.05em] text-slate-
       </button>
     </div>
 
-    <div v-if="loading" class="text-[13px] text-slate-400 py-4 text-center">Carregando…</div>
+    <div v-if="loading" class="flex flex-col gap-3 py-2">
+      <div class="flex gap-3">
+        <AppSkeleton class="h-16 flex-1 rounded-lg" />
+        <AppSkeleton class="h-16 flex-1 rounded-lg" />
+        <AppSkeleton class="h-16 flex-1 rounded-lg" />
+      </div>
+      <AppSkeleton class="h-3.5 w-40" />
+    </div>
 
     <div v-else-if="data && data.views === 0" class="text-[13px] text-slate-400 py-4 text-center">
       Ainda sem visualizações. As métricas aparecem quando o guia começar a ser lido.

@@ -86,9 +86,10 @@ const slideT = {
         class="sticky top-0 z-[2] bg-white border-b border-slate-200 px-[22px] py-[18px] flex items-start justify-between"
       >
         <div>
-          <h2 class="text-[19px] font-extrabold tracking-[-0.02em] m-0 text-slate-900">
-            {{ detail?.name || 'Carregando…' }}
+          <h2 v-if="detail" class="text-[19px] font-extrabold tracking-[-0.02em] m-0 text-slate-900">
+            {{ detail.name }}
           </h2>
+          <AppSkeleton v-else class="h-5 w-44 mb-1" />
           <div class="text-[12.5px] text-slate-400">Contato</div>
         </div>
         <button
@@ -141,7 +142,17 @@ const slideT = {
           <DocumentsPanel :contact-id="detail.id" />
         </div>
       </div>
-      <div v-else class="px-[22px] py-10 text-center text-slate-400 text-[14px]">Carregando…</div>
+      <div v-else class="px-[22px] py-6 flex flex-col gap-5">
+        <div class="flex flex-col gap-2">
+          <AppSkeleton class="h-4 w-40" />
+          <AppSkeleton class="h-3.5 w-56" />
+        </div>
+        <div class="flex flex-col gap-2.5">
+          <AppSkeleton class="h-10 w-full rounded-lg" />
+          <AppSkeleton class="h-10 w-full rounded-lg" />
+          <AppSkeleton class="h-10 w-3/4 rounded-lg" />
+        </div>
+      </div>
       </aside>
     </Transition>
   </div>

@@ -982,8 +982,9 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
                 <button
                   type="submit"
                   :disabled="!newTask.trim() || addingTask"
-                  class="h-9 px-3.5 text-[12.5px] font-semibold text-white bg-brand rounded-lg cursor-pointer border-none hover:bg-brand-dark disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                  class="h-9 px-3.5 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-white bg-brand rounded-lg cursor-pointer border-none hover:bg-brand-dark disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                 >
+                  <AppSpinner v-if="addingTask" :size="13" />
                   Adicionar
                 </button>
               </form>

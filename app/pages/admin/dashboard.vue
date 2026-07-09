@@ -74,8 +74,9 @@ const recent = computed(() => opportunities.value.slice(0, 5))
         class="bg-white border border-slate-200 rounded-xl p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
       >
         <div class="text-[12.5px] font-semibold text-slate-500 mb-2">{{ c.label }}</div>
-        <div class="text-[28px] font-extrabold tracking-[-0.02em]" :class="c.accent">
-          {{ loading ? '—' : c.value }}
+        <AppSkeleton v-if="loading" class="h-8 w-16" />
+        <div v-else class="text-[28px] font-extrabold tracking-[-0.02em]" :class="c.accent">
+          {{ c.value }}
         </div>
       </div>
     </div>

@@ -161,7 +161,7 @@ const fmtDate = (iso: string) => {
             </tr>
           </tbody>
         </table>
-        <div v-if="loading" class="py-10 text-center text-slate-400 text-[14px]">Carregando…</div>
+        <SkeletonTable v-if="loading" :rows="6" :cols="4" />
         <div
           v-else-if="recent.length === 0"
           class="py-10 text-center text-slate-400 text-[14px]"

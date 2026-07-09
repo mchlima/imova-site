@@ -228,10 +228,11 @@ const block = 'text-[11px] font-bold uppercase tracking-[0.05em] text-slate-400'
               Cancelar
             </button>
             <button
-              class="h-9 px-4 text-[13px] font-semibold text-white bg-brand rounded-lg cursor-pointer border-none hover:bg-brand-dark disabled:opacity-50"
+              class="h-9 px-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-brand rounded-lg cursor-pointer border-none hover:bg-brand-dark disabled:opacity-50"
               :disabled="saving"
               @click="save"
             >
+              <AppSpinner v-if="saving" :size="14" />
               {{ saving ? 'Salvando…' : 'Salvar contato' }}
             </button>
           </div>

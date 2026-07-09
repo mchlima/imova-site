@@ -194,7 +194,7 @@ const badgeStyle = (c: string) => ({ color: c, backgroundColor: c + '1F' })
       </template>
     </PageHeader>
 
-    <div v-if="loading" class="text-slate-400 text-[14px] py-12 text-center">Carregando…</div>
+    <SkeletonForm v-if="loading" :rows="4" />
 
     <div v-else class="max-w-[840px]">
       <!-- DADOS DO PIPELINE: nome + key (Salvar) e dono (auto-salva) -->
@@ -222,10 +222,11 @@ const badgeStyle = (c: string) => ({ color: c, backgroundColor: c + '1F' })
           <div class="flex items-center gap-2.5 ml-auto">
             <span v-if="metaError" class="text-[12px] text-red-600 font-medium">{{ metaError }}</span>
             <button
-              class="h-[38px] px-4 bg-brand text-white text-[13px] font-semibold rounded-lg cursor-pointer border-none hover:bg-brand-dark disabled:opacity-50 disabled:cursor-default"
+              class="h-[38px] px-4 inline-flex items-center gap-1.5 bg-brand text-white text-[13px] font-semibold rounded-lg cursor-pointer border-none hover:bg-brand-dark disabled:opacity-50 disabled:cursor-default"
               :disabled="!metaDirty || savingMeta"
               @click="saveMeta"
             >
+              <AppSpinner v-if="savingMeta" :size="14" />
               {{ savingMeta ? 'Salvando…' : 'Salvar' }}
             </button>
           </div>
@@ -316,10 +317,11 @@ const badgeStyle = (c: string) => ({ color: c, backgroundColor: c + '1F' })
         <div class="flex justify-end gap-2 mt-5">
           <button class="h-9 px-4 text-[13px] font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg cursor-pointer" @click="dlm.open = false">Cancelar</button>
           <button
-            class="h-9 px-4 text-[13px] font-semibold text-white bg-red-600 rounded-lg cursor-pointer border-none hover:bg-red-700 disabled:opacity-50"
+            class="h-9 px-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-red-600 rounded-lg cursor-pointer border-none hover:bg-red-700 disabled:opacity-50"
             :disabled="dlm.saving || !dlm.moveTo"
             @click="confirmDeleteStage"
           >
+            <AppSpinner v-if="dlm.saving" :size="14" />
             {{ dlm.saving ? 'Excluindo…' : 'Mover e excluir' }}
           </button>
         </div>

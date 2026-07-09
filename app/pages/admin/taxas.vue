@@ -207,9 +207,7 @@ const rateInput =
           </div>
         </div>
 
-        <div v-if="loadingCities" class="px-5 py-10 text-center text-slate-400 text-[14px]">
-          Carregando cidades…
-        </div>
+        <SkeletonTable v-if="loadingCities" :rows="8" :cols="4" />
         <table v-else class="w-full border-collapse">
           <tbody>
             <tr

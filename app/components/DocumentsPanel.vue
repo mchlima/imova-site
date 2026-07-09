@@ -134,10 +134,11 @@ async function removeDoc(d: DocumentItem) {
         </p>
         <button
           type="button"
-          class="h-9 px-3.5 text-[13px] font-semibold text-white bg-brand rounded-[7px] cursor-pointer border-none hover:bg-brand-dark disabled:opacity-50 ml-auto shrink-0"
+          class="h-9 px-3.5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-brand rounded-[7px] cursor-pointer border-none hover:bg-brand-dark disabled:opacity-50 ml-auto shrink-0"
           :disabled="uploading || !contactId"
           @click="pickFiles"
         >
+          <AppSpinner v-if="uploading" :size="14" />
           {{ uploading ? `Enviando ${uploadDone}/${uploadTotal}…` : '+ Enviar documentos' }}
         </button>
         <input ref="fileInput" type="file" multiple class="hidden" :accept="DOC_ACCEPT" @change="onFiles" />
@@ -145,7 +146,10 @@ async function removeDoc(d: DocumentItem) {
       <p v-if="error" class="text-[12px] text-red-600 mt-2">{{ error }}</p>
     </div>
 
-    <div v-if="loading" class="text-[13px] text-slate-400 text-center py-4">Carregando…</div>
+    <div v-if="loading" class="flex flex-col gap-2 py-1">
+      <AppSkeleton class="h-[52px] w-full rounded-lg" />
+      <AppSkeleton class="h-[52px] w-full rounded-lg" />
+    </div>
 
     <!-- desta oportunidade -->
     <div v-if="opportunityId">

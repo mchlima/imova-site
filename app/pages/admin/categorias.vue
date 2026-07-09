@@ -207,7 +207,7 @@ const hasSeo = (c: Category) =>
           <AdminIcon name="trash" :size="16" />
         </button>
       </div>
-      <div v-if="loading" class="px-4 py-10 text-center text-slate-400 text-[14px]">Carregando…</div>
+      <SkeletonTable v-if="loading" :rows="6" :cols="3" />
       <div
         v-else-if="ordered.length === 0"
         class="px-4 py-10 text-center text-slate-400 text-[14px]"

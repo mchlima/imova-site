@@ -213,9 +213,7 @@ const tempOptions = computed(() => ({
         <ClientOnly>
           <apexchart type="bar" height="270" :options="statusOptions" :series="statusSeries" />
           <template #fallback>
-            <div class="h-[270px] flex items-center justify-center text-slate-300 text-[13px]">
-              Carregando gráfico…
-            </div>
+            <AppSkeleton class="h-[270px] w-full rounded-lg" />
           </template>
         </ClientOnly>
       </div>
@@ -225,9 +223,7 @@ const tempOptions = computed(() => ({
         <ClientOnly>
           <apexchart type="donut" height="270" :options="tempOptions" :series="tempSeries" />
           <template #fallback>
-            <div class="h-[270px] flex items-center justify-center text-slate-300 text-[13px]">
-              Carregando gráfico…
-            </div>
+            <AppSkeleton class="h-[270px] w-full rounded-lg" />
           </template>
         </ClientOnly>
       </div>
@@ -263,7 +259,7 @@ const tempOptions = computed(() => ({
             </tr>
           </tbody>
         </table>
-        <div v-if="loading" class="py-10 text-center text-slate-400 text-[14px]">Carregando…</div>
+        <SkeletonTable v-if="loading" :rows="6" :cols="4" />
         <div v-else-if="!recent.length" class="py-10 text-center text-slate-400 text-[14px]">Nenhuma oportunidade ainda.</div>
       </div>
     </div>
