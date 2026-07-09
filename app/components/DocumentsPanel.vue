@@ -4,6 +4,8 @@ import { type DocumentItem, DOC_ACCEPT, DOC_MAX_BYTES } from '~/utils/documentMo
 // contactId = dono dos documentos. opportunityId (opcional) = contexto de envio;
 // quando presente, separa "desta oportunidade" dos demais do contato (reutilizáveis).
 const props = defineProps<{ contactId: string | null | undefined; opportunityId?: string }>()
+// avisa o pai (drawer) que a lista mudou → ele recarrega o histórico da oportunidade
+const emit = defineEmits<{ changed: [] }>()
 
 const apiBase = useRuntimeConfig().public.apiBase
 const docs = ref<DocumentItem[]>([])
@@ -76,6 +78,7 @@ async function onFiles(e: Event) {
     await load() // reflete os que subiram antes da falha
   } finally {
     uploading.value = false
+    emit('changed')
   }
 }
 
@@ -114,6 +117,7 @@ async function removeDoc(d: DocumentItem) {
   try {
     await $fetch(`/documents/${d.id}`, { baseURL: apiBase, method: 'DELETE', credentials: 'include' })
     await load()
+    emit('changed')
   } catch {
     error.value = 'Não foi possível excluir o documento.'
   }

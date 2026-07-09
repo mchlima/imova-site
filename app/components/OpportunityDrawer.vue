@@ -212,6 +212,8 @@ const EVENT_ICONS: Record<string, string> = {
   assignees_changed: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="8" r="3.5"/>',
   temperature_changed: '<path d="M14 14.76V4a2 2 0 1 0-4 0v10.76a4 4 0 1 0 4 0z"/>',
   fields_updated: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  document_added: '<path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3 3 0 0 1 4.24 4.24l-9.19 9.19a1 1 0 0 1-1.41-1.41l8.48-8.49"/>',
+  document_removed: '<path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3 3 0 0 1 4.24 4.24l-9.19 9.19a1 1 0 0 1-1.41-1.41l8.48-8.49"/>',
 }
 const EvIcon = (props: { type: string; size?: number }) =>
   h('svg', {
@@ -234,6 +236,8 @@ const EVENT_COLORS: Record<string, string> = {
   assignees_changed: '#0f766e',
   temperature_changed: '#c2410c',
   fields_updated: '#64748b',
+  document_added: '#0f766e',
+  document_removed: '#be123c',
 }
 const eventColor = (t: string) => EVENT_COLORS[t] || '#64748b'
 // eventos já vêm do backend do mais recente para o mais antigo
@@ -262,6 +266,10 @@ function eventText(e: { type: string; data: Record<string, unknown> }) {
     }
     case 'fields_updated':
       return `Atualizou: ${Array.isArray(d.fields) ? d.fields.join(', ') : 'campos'}`
+    case 'document_added':
+      return `Anexou documento: ${d.fileName || ''}`
+    case 'document_removed':
+      return `Removeu documento: ${d.fileName || ''}`
     default:
       return e.type
   }
@@ -714,7 +722,7 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
 
         <!-- ABA DOCUMENTOS (arquivos do lead — R2 privado) -->
         <div v-show="tab === 'documentos'" class="flex-1 min-h-0 overflow-y-auto px-[22px] py-4">
-          <DocumentsPanel v-if="sel" :contact-id="sel.contact.id" :opportunity-id="sel.id" />
+          <DocumentsPanel v-if="sel" :contact-id="sel.contact.id" :opportunity-id="sel.id" @changed="refreshSel" />
         </div>
 
         <!-- ABA HISTÓRICO (log read-only de alterações/movimentações) -->
