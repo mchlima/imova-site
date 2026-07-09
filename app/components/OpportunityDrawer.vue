@@ -8,6 +8,7 @@ import {
   mapOpportunity,
   formatResidence,
   sourceLabel,
+  oppTitle,
   CHANNEL_LABELS,
   CHANNEL_ICONS,
   tempBadgeStyle,
@@ -306,8 +307,28 @@ watch([open, () => sel.value?.id], () => {
   if (open.value) {
     descDraft.value = sel.value?.description ?? ''
     descSaved.value = false
+    editingTitle.value = false
   }
 })
+
+// ── título editável inline no header ──
+const editingTitle = ref(false)
+const titleDraft = ref('')
+const titleInput = ref<HTMLInputElement | null>(null)
+function startEditTitle() {
+  titleDraft.value = sel.value?.title ?? ''
+  editingTitle.value = true
+  nextTick(() => titleInput.value?.focus())
+}
+async function saveTitle() {
+  if (!editingTitle.value) return
+  editingTitle.value = false
+  const next = titleDraft.value.trim()
+  if (next !== (sel.value?.title ?? '')) await patchSel({ title: next })
+}
+function cancelEditTitle() {
+  editingTitle.value = false
+}
 function discardDescription() {
   descDraft.value = sel.value?.description ?? ''
 }
@@ -529,17 +550,53 @@ const blockLabel = 'text-[11.5px] font-bold uppercase tracking-[0.05em] text-sla
               </div>
 
               <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-1">
-                  <h2 class="text-[18px] font-extrabold tracking-[-0.02em] m-0 text-slate-900 truncate">
-                    {{ sel.contact.name }}
+                <!-- título da oportunidade (editável inline; vazio = nome do contato) -->
+                <input
+                  v-if="editingTitle"
+                  ref="titleInput"
+                  v-model="titleDraft"
+                  type="text"
+                  maxlength="120"
+                  placeholder="Título da oportunidade"
+                  class="w-full text-[18px] font-extrabold tracking-[-0.02em] text-slate-900 border border-brand rounded-md px-2 py-0.5 outline-none"
+                  @keydown.enter.prevent="saveTitle"
+                  @keydown.esc="cancelEditTitle"
+                  @blur="saveTitle"
+                />
+                <div v-else class="flex items-center gap-1">
+                  <h2
+                    class="text-[18px] font-extrabold tracking-[-0.02em] m-0 text-slate-900 truncate cursor-text hover:text-brand transition-colors"
+                    title="Clique para editar o título"
+                    @click="startEditTitle"
+                  >
+                    {{ oppTitle(sel) }}
                   </h2>
                   <button
                     type="button"
                     class="w-6 h-6 inline-flex items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-brand cursor-pointer bg-transparent border-none shrink-0"
+                    title="Editar título"
+                    @click="startEditTitle"
+                  >
+                    <svg class="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                    </svg>
+                  </button>
+                </div>
+                <!-- contato + editar contato -->
+                <div class="flex items-center gap-1 mt-0.5 min-w-0">
+                  <svg class="w-[13px] h-[13px] text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                  <span class="text-[12.5px] text-slate-500 truncate">{{ sel.contact.name }}</span>
+                  <button
+                    type="button"
+                    class="w-5 h-5 inline-flex items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-brand cursor-pointer bg-transparent border-none shrink-0"
                     title="Editar contato"
                     @click="editContactOpen = true"
                   >
-                    <svg class="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <svg class="w-[12px] h-[12px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M12 20h9" />
                       <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
                     </svg>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type RawOpportunity, mapOpportunity, type Opportunity, oppCity, oppUf } from '~/utils/opportunityModel'
+import { type RawOpportunity, mapOpportunity, type Opportunity, oppCity, oppUf, oppTitle } from '~/utils/opportunityModel'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 useHead({ meta: [{ name: 'robots', content: 'noindex, nofollow' }] })
@@ -249,7 +249,8 @@ const tempOptions = computed(() => ({
               @click="navigateTo(`/admin/pipelines?oportunidade=${l.id}`)"
             >
               <td class="py-3 px-4">
-                <div class="text-[14px] font-semibold text-slate-900">{{ l.contact.name }}</div>
+                <div class="text-[14px] font-semibold text-slate-900">{{ oppTitle(l) }}</div>
+                <div v-if="l.title" class="text-[12px] text-slate-500 truncate">{{ l.contact.name }}</div>
                 <div class="text-[12px] text-slate-400">{{ oppCity(l) || '—' }}{{ oppUf(l) ? '/' + oppUf(l) : '' }}</div>
               </td>
               <td class="py-3 px-3">

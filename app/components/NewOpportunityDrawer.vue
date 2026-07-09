@@ -41,6 +41,8 @@ const mode = ref<'existing' | 'new'>('existing')
 const contactId = ref('')
 const newContact = reactive({ name: '', channels: [] as DraftChannel[] })
 const stageId = ref('')
+// título opcional da oportunidade (vazio = usa o nome do contato p/ exibição)
+const title = ref('')
 const temperature = ref('Sem classificação')
 // origem do lead — campo aberto (texto livre); vazio cai em 'manual'
 const source = ref('')
@@ -86,6 +88,7 @@ function reset() {
       ? props.initialStageId
       : boardStages.value[0]?.id) || ''
   temperature.value = 'Sem classificação'
+  title.value = ''
   source.value = ''
   assignees.value = []
   for (const k of Object.keys(fieldValues)) delete fieldValues[k]
@@ -117,6 +120,7 @@ async function create() {
   saving.value = true
   error.value = ''
   const body: Record<string, unknown> = {
+    title: title.value.trim() || undefined,
     source: source.value.trim() || 'manual',
     pipelineId: props.pipelineId || undefined,
     stageId: stageId.value || undefined,
@@ -186,6 +190,19 @@ const seg = 'h-[34px] px-3 text-[13px] font-semibold rounded-md cursor-pointer b
         </div>
 
         <div class="px-[22px] pt-5 pb-4 flex-1 flex flex-col gap-[18px]">
+          <!-- OPORTUNIDADE (título opcional) -->
+          <div class="bg-white border border-slate-200 rounded-[10px] p-[18px]">
+            <div :class="block" class="mb-3">Oportunidade</div>
+            <label :class="label">Título <span class="text-slate-400 font-normal">(opcional)</span></label>
+            <input
+              v-model="title"
+              :class="input"
+              maxlength="120"
+              placeholder="Ex.: Apartamento 2 quartos — Vila Mariana"
+            />
+            <p class="mt-1.5 text-[11.5px] text-slate-400">Se vazio, usamos o nome do contato.</p>
+          </div>
+
           <!-- CONTATO -->
           <div class="bg-white border border-slate-200 rounded-[10px] p-[18px]">
             <div :class="block" class="mb-3">Contato</div>

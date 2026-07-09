@@ -107,6 +107,8 @@ export interface Opportunity {
   id: string
   contact: Contact
   source: string
+  // título opcional (vazio = usa o nome do contato p/ exibição — ver oppTitle)
+  title: string
   // descrição livre (markdown) da oportunidade
   description: string
   // estágio atual do funil (id interno). Pode vir null em bases antigas.
@@ -130,6 +132,11 @@ export interface Opportunity {
   // responsáveis (0..N) — vêm do backend como { id, name }
   assignees: Assignee[]
 }
+
+// Nome de exibição da oportunidade: título quando definido, senão o nome do contato.
+export const oppTitle = (
+  o: { title?: string; contact?: { name?: string } } | null | undefined,
+) => (o?.title || '').trim() || o?.contact?.name || ''
 
 // Iniciais para o avatar: primeira letra do primeiro e do último nome.
 export const initials = (name: string) => {

@@ -2,7 +2,7 @@
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 useHead({ meta: [{ name: 'robots', content: 'noindex, nofollow' }] })
 
-import { oppCity, oppUf, oppPropertyValue } from '~/utils/opportunityModel'
+import { oppCity, oppUf, oppPropertyValue, oppTitle } from '~/utils/opportunityModel'
 
 const apiBase = useRuntimeConfig().public.apiBase
 
@@ -109,7 +109,7 @@ const recent = computed(() => opportunities.value.slice(0, 5))
             :key="l.id"
             class="border-b border-slate-100 last:border-0"
           >
-            <td class="px-5 py-3 text-[14px] font-semibold text-slate-900">{{ l.contact.name }}</td>
+            <td class="px-5 py-3 text-[14px] font-semibold text-slate-900">{{ oppTitle(l) }}</td>
             <td class="px-3 py-3 text-[13px] text-slate-500">{{ oppCity(l) || '—' }}{{ oppUf(l) ? '/' + oppUf(l) : '' }}</td>
             <td class="px-3 py-3 text-right text-[13px] font-semibold text-slate-700">
               {{ fmt(oppPropertyValue(l)) }}

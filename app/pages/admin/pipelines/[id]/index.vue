@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DateRange } from '~/components/DateRangePicker.vue'
 import VueDraggable from 'vuedraggable'
-import { type Opportunity, type RawOpportunity, mapOpportunity, sourceLabel, TEMPS, TEMP_HEX, tempBadgeStyle, fmtDateTime, dueState } from '~/utils/opportunityModel'
+import { type Opportunity, type RawOpportunity, mapOpportunity, oppTitle, sourceLabel, TEMPS, TEMP_HEX, tempBadgeStyle, fmtDateTime, dueState } from '~/utils/opportunityModel'
 
 // vuedraggable expõe um build UMD no campo "module"; normaliza o default export
 // para funcionar tanto no SSR quanto no bundle do client (evita componente undefined).
@@ -179,7 +179,7 @@ const filtered = computed(() => {
   return opportunities.value.filter((l) => {
     // toda a tela é escopada ao board ativo
     if (activePipelineId.value && l.pipelineId !== activePipelineId.value) return false
-    if (q && !(l.contact.name + ' ' + l.contact.channels.map((c) => c.value).join(' ')).toLowerCase().includes(q)) return false
+    if (q && !(l.title + ' ' + l.contact.name + ' ' + l.contact.channels.map((c) => c.value).join(' ')).toLowerCase().includes(q)) return false
     if (fStageId.value && l.stageId !== fStageId.value) return false
     if (fTemperature.value && l.temperature !== fTemperature.value) return false
     if (fUf.value && l.contact.residenceUf !== fUf.value) return false
@@ -597,7 +597,8 @@ async function persistBoard() {
                 @contextmenu.prevent="openCardMenu(l, $event)"
               >
                 <td class="py-[13px] px-4">
-                  <div class="text-[14px] font-semibold text-slate-900 truncate">{{ l.contact.name }}</div>
+                  <div class="text-[14px] font-semibold text-slate-900 truncate">{{ oppTitle(l) }}</div>
+                  <div v-if="l.title" class="text-[12px] text-slate-400 truncate">{{ l.contact.name }}</div>
                   <span
                     v-if="nextActivity(l)"
                     class="inline-flex items-center mt-1 h-[18px] px-1.5 rounded text-[10.5px] font-semibold"
@@ -747,7 +748,7 @@ async function persistBoard() {
                   @contextmenu.prevent="openCardMenu(o, $event)"
                 >
                   <div class="flex items-center gap-2">
-                    <span class="text-[13.5px] font-semibold text-slate-900 truncate flex-1">{{ o.contact.name }}</span>
+                    <span class="text-[13.5px] font-semibold text-slate-900 truncate flex-1">{{ oppTitle(o) }}</span>
                     <!-- responsáveis no header, alinhados à direita (somem no hover p/ dar lugar ao ⋯) -->
                     <AvatarStack
                       v-if="o.assignees?.length"
@@ -757,6 +758,8 @@ async function persistBoard() {
                       class="shrink-0 ml-auto group-hover:opacity-0 transition-opacity"
                     />
                   </div>
+                  <!-- contato (só quando há título, p/ não duplicar) -->
+                  <div v-if="o.title" class="text-[11.5px] text-slate-400 truncate mt-0.5">{{ o.contact.name }}</div>
                   <!-- ações rápidas (⋯) — aparece no hover; não abre o drawer nem arrasta -->
                   <button
                     class="absolute top-1.5 right-1.5 w-6 h-6 inline-flex items-center justify-center rounded-md text-slate-400 bg-white/80 opacity-0 group-hover:opacity-100 hover:bg-slate-100 hover:text-slate-700 transition-all cursor-pointer border-none"
