@@ -251,6 +251,10 @@ const statusStyle = computed(() => ({ backgroundColor: '#0f172a', color: '#fff' 
 
 // carrosséis com scroll lateral (lazer e plantas)
 const galTrack = ref<HTMLElement | null>(null)
+const typoTrack = ref<HTMLElement | null>(null)
+// plantas viram carrossel lateral quando passam de 3 (mostra 3 + parte do 4º);
+// com até 3, mantém a grade (preenche a linha sem espaço vazio)
+const typoSlider = computed(() => dev.typologies.length > 3)
 function scrollTrack(el: HTMLElement | null, dir: number) {
   if (el) el.scrollBy({ left: dir * el.clientWidth * 0.85, behavior: 'smooth' })
 }
@@ -454,15 +458,31 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
     <!-- TIPOLOGIAS (cada planta com suas características) -->
     <section v-if="dev.typologies.length" class="max-w-[87.5rem] mx-auto px-6 pt-16">
-      <div class="mb-6">
-        <span class="text-[12px] font-bold uppercase tracking-[0.14em] text-brand">Plantas & tipologias</span>
-        <h2 class="text-[26px] sm:text-[30px] font-extrabold tracking-[-0.02em] text-slate-900 mt-1.5 mb-0 leading-[1.12]">Escolha a sua planta</h2>
+      <div class="flex items-end justify-between gap-6 mb-6">
+        <div>
+          <span class="text-[12px] font-bold uppercase tracking-[0.14em] text-brand">Plantas & tipologias</span>
+          <h2 class="text-[26px] sm:text-[30px] font-extrabold tracking-[-0.02em] text-slate-900 mt-1.5 mb-0 leading-[1.12]">Escolha a sua planta</h2>
+        </div>
+        <div v-if="typoSlider" class="hidden sm:flex items-center gap-2 shrink-0">
+          <button type="button" class="w-10 h-10 inline-flex items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer" aria-label="Anterior" @click="scrollTrack(typoTrack, -1)">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+          </button>
+          <button type="button" class="w-10 h-10 inline-flex items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer" aria-label="Próxima" @click="scrollTrack(typoTrack, 1)">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+          </button>
+        </div>
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div
+        ref="typoTrack"
+        :class="typoSlider
+          ? 'flex gap-4 overflow-x-auto snap-x snap-mandatory pb-3'
+          : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5'"
+        :style="typoSlider ? 'scrollbar-width: none' : ''"
+      >
         <div
           v-for="t in dev.typologies"
           :key="t.id"
-          class="group bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-[0_18px_44px_-24px_rgba(15,23,42,0.28)] hover:-translate-y-0.5 transition-all duration-300"
+          :class="['group bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-[0_18px_44px_-24px_rgba(15,23,42,0.28)] hover:-translate-y-0.5 transition-all duration-300', typoSlider ? 'snap-start shrink-0 w-[80vw] sm:w-[30%]' : '']"
         >
           <!-- planta (clicável → lightbox) -->
           <button
