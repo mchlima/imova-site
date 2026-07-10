@@ -323,13 +323,41 @@ async function persistBoard() {
       <PageHeader
         :title="activeBoard ? `Pipeline · ${activeBoard.label}` : 'Pipelines'"
         subtitle="Receba, qualifique e mova as oportunidades pelas etapas do funil."
-      />
+      >
+        <template #actions>
+          <!-- configurações do pipeline (dono + etapas) — ação secundária -->
+          <NuxtLink
+            v-if="activeBoard"
+            :to="settingsLink"
+            class="inline-flex items-center justify-center w-[38px] h-[38px] bg-white border border-slate-200 text-slate-500 rounded-[8px] no-underline transition-all hover:bg-slate-50 hover:text-slate-800"
+            :title="'Configurar ' + activeBoard.label + ' (dono e etapas)'"
+          >
+            <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </NuxtLink>
+          <!-- ação primária rotulada -->
+          <button
+            class="inline-flex items-center gap-1.5 h-[38px] pl-3 pr-4 bg-brand text-white text-[13px] font-semibold rounded-[8px] cursor-pointer border-none hover:bg-brand-dark shrink-0 shadow-sm transition-all"
+            @click="openNewOpp()"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Nova oportunidade
+          </button>
+        </template>
+      </PageHeader>
 
       <!-- Navegação entre pipelines fica no menu (CRM › Pipelines › …). -->
 
-      <!-- BARRA: busca + data (fora) + botão de filtros (painel) -->
-      <div class="flex gap-2.5 items-center flex-wrap mb-[18px]">
-        <div class="relative flex-1 min-w-[180px] max-w-[380px]">
+      <!-- BARRA DE CONTROLES: busca à esquerda; data, filtros e visão à direita -->
+      <div
+        class="flex items-center gap-2.5 flex-wrap mb-[18px] bg-white border border-slate-200 rounded-[10px] px-3 py-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+      >
+        <div class="relative flex-1 min-w-[180px] max-w-[420px]">
           <span
             class="absolute left-[11px] top-1/2 -translate-y-1/2 text-slate-400 text-[13px]"
             >⌕</span
@@ -337,18 +365,12 @@ async function persistBoard() {
           <input
             v-model="fSearch"
             placeholder="Buscar por nome, e-mail ou WhatsApp…"
-            class="w-full h-[38px] pl-8 pr-3 text-[13.5px] text-slate-900 border border-slate-300 rounded-[7px] outline-none transition-all focus:border-brand focus:ring-[3px] focus:ring-brand/10"
+            class="w-full h-[38px] pl-8 pr-3 text-[13.5px] text-slate-900 bg-slate-50 border border-transparent rounded-[7px] outline-none transition-all focus:bg-white focus:border-brand focus:ring-[3px] focus:ring-brand/10"
           />
         </div>
-        <!-- ml-auto empurra o + e todas as ações seguintes para a direita -->
-        <button
-          class="ml-auto inline-flex items-center justify-center w-[38px] h-[38px] bg-brand text-white rounded-[7px] cursor-pointer border-none hover:bg-brand-dark shrink-0"
-          title="Nova oportunidade"
-          @click="openNewOpp()"
-        >
-          <span class="text-[18px] leading-none">+</span>
-        </button>
 
+        <!-- grupo à direita: data + filtros | divisória | alternância de visão -->
+        <div class="ml-auto flex items-center gap-2.5">
         <DateRangePicker v-model="fRange" icon-only />
 
         <!-- FILTROS (só ícone + painel suspenso) -->
@@ -489,23 +511,11 @@ async function persistBoard() {
           </div>
         </div>
 
-        <!-- área à direita: toggle lista/kanban + configurar pipeline por último (ícones).
-             Sem ml-auto aqui: o ml-auto do botão + já empurra todo o bloco de ações. -->
-        <div class="flex items-center gap-2.5">
-          <!-- configurações do pipeline ativo (dono + etapas do funil) — por último -->
-          <NuxtLink
-            v-if="activeBoard"
-            :to="settingsLink"
-            class="order-last inline-flex items-center justify-center w-[38px] h-[38px] bg-white border border-slate-200 text-slate-600 rounded-[7px] no-underline transition-all hover:bg-slate-50 hover:text-slate-800"
-            :title="'Configurar ' + activeBoard.label + ' (dono e etapas)'"
-          >
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-          </NuxtLink>
+        <!-- divisória entre o grupo de filtros e a alternância de visão -->
+        <span class="w-px h-6 bg-slate-200"></span>
 
-          <div class="inline-flex items-center bg-slate-100 rounded-[9px] p-0.5">
+        <!-- alternância lista | kanban -->
+        <div class="inline-flex items-center bg-slate-100 rounded-[9px] p-0.5">
             <button
               type="button"
               class="inline-flex items-center justify-center w-[34px] h-[34px] rounded-[7px] transition-all cursor-pointer border-none"
