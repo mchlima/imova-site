@@ -116,7 +116,7 @@ async function signOut() {
           ></span>
         </span>
         <span class="text-[16px] font-extrabold tracking-[-0.02em] text-slate-900"
-          >Meu Revelar</span
+          >ReveLar</span
         >
         <span class="text-[11px] font-semibold text-slate-400 ml-1">admin</span>
       </div>

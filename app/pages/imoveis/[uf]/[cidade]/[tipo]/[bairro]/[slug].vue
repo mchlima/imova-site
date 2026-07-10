@@ -32,11 +32,9 @@ const canonicalPath = `/imoveis/${dev.uf.toLowerCase()}/${dev.cidadeSlug}/${dev.
 const canonical = origin + canonicalPath
 const hero = computed(() => heroImage(dev))
 
-// selo HIS/HMP da Prefeitura de São Paulo — empreendimentos MCMV em SP
+// selo HIS/HMP da Prefeitura de São Paulo — montado a partir dos tetos cadastrados
 const showSeloSP = computed(
-  () =>
-    dev.uf === 'SP' &&
-    (!!dev.tetoHis1 || !!dev.tetoHmp || /his|hmp/i.test(dev.programa || '')),
+  () => dev.uf === 'SP' && (!!dev.tetoHis1 || !!dev.tetoHis2 || !!dev.tetoHmp),
 )
 
 // ── dados derivados p/ SEO/GEO ──
@@ -46,8 +44,10 @@ const amenityNames = computed(() => {
   const map = new Map(metaData.value.amenities.map((a) => [a.slug, a.label]))
   return dev.amenities.map((s) => map.get(s) || s)
 })
+// formata metragem em pt-BR (31.71 → "31,71")
+const nfArea = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 2 })
 const areaText = computed(() =>
-  dev.areaMax ? (dev.areaMin && dev.areaMin !== dev.areaMax ? `${dev.areaMin} a ${dev.areaMax}` : `${dev.areaMax}`) : '',
+  dev.areaMax ? (dev.areaMin && dev.areaMin !== dev.areaMax ? `${nfArea(dev.areaMin)} a ${nfArea(dev.areaMax)}` : nfArea(dev.areaMax)) : '',
 )
 const dormsText = computed(() =>
   dev.bedroomsMax ? (dev.bedroomsMin && dev.bedroomsMin !== dev.bedroomsMax ? `${dev.bedroomsMin} a ${dev.bedroomsMax}` : `${dev.bedroomsMax}`) : '',
@@ -176,7 +176,7 @@ useSeoMeta({
   ogDescription: () => seoDesc.value,
   ogType: 'website',
   ogUrl: canonical,
-  ogSiteName: 'Meu Revelar',
+  ogSiteName: 'ReveLar',
   ogLocale: 'pt_BR',
   ogImage: () => ogImg.value,
   twitterCard: 'summary_large_image',
@@ -244,7 +244,7 @@ const dormsFato = computed(() => {
 })
 const areaFato = computed(() => {
   if (!dev.areaMax) return ''
-  return dev.areaMin && dev.areaMin !== dev.areaMax ? `${dev.areaMin}–${dev.areaMax}` : `${dev.areaMax}`
+  return dev.areaMin && dev.areaMin !== dev.areaMax ? `${nfArea(dev.areaMin)}–${nfArea(dev.areaMax)}` : nfArea(dev.areaMax)
 })
 
 const statusStyle = computed(() => ({ backgroundColor: '#0f172a', color: '#fff' }))
@@ -295,12 +295,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       <div class="relative h-[62vh] min-h-[420px] max-h-[640px] bg-slate-900 overflow-hidden">
         <img v-if="hero" :src="hero" :alt="dev.name" class="absolute inset-0 w-full h-full object-cover opacity-80" />
         <div class="absolute inset-0" style="background: linear-gradient(180deg, rgba(15,23,42,0.15) 0%, rgba(15,23,42,0.55) 55%, rgba(15,23,42,0.85) 100%)"></div>
-        <!-- selo HIS/HMP (Prefeitura de SP), discreto no canto -->
-        <img
+        <!-- selo HIS/HMP (Prefeitura de SP) montado dinamicamente, discreto no canto -->
+        <HisHmpSeal
           v-if="showSeloSP"
-          src="/img/selo-his-hmp-sp.webp"
-          alt="Empreendimento com unidades HIS-1, HIS-2 e HMP — Prefeitura de São Paulo"
-          class="absolute top-4 right-4 sm:top-6 sm:right-6 z-[2] w-[150px] sm:w-[210px] rounded-lg shadow-[0_10px_28px_-10px_rgba(0,0,0,0.6)] ring-1 ring-white/20"
+          :teto-his1="dev.tetoHis1"
+          :teto-his2="dev.tetoHis2"
+          :teto-hmp="dev.tetoHmp"
+          class="absolute top-4 right-4 sm:top-6 sm:right-6 z-[2] w-[200px] sm:w-[232px]"
         />
         <div class="relative z-[1] max-w-[87.5rem] mx-auto px-6 h-full flex flex-col justify-end pb-10">
           <span class="inline-flex items-center h-[26px] px-3 rounded-full text-[12px] font-bold w-max mb-3" :style="statusStyle">{{ statusLabel(dev.status) }}</span>
@@ -326,8 +327,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           <div class="text-[20px] font-extrabold text-slate-900 mt-1">{{ areaFato || 'Sob consulta' }}</div>
         </div>
         <div class="p-5">
-          <div class="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-400">Construtora</div>
-          <div class="text-[20px] font-extrabold text-slate-900 mt-1 truncate">{{ dev.construtora || '—' }}</div>
+          <div class="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-400">{{ dev.parkingMax ? 'Vagas' : 'Construtora' }}</div>
+          <div class="text-[20px] font-extrabold text-slate-900 mt-1 truncate">{{ dev.parkingMax ? dev.parkingMax : (dev.construtora || '—') }}</div>
         </div>
         <div class="p-5">
           <div class="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-400">Entrega</div>
@@ -488,7 +489,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
               </span>
               <span v-if="t.areaMax" class="inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-600">
                 <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3zM3 9h18M9 21V9" /></svg>
-                {{ t.areaMin && t.areaMin !== t.areaMax ? `${t.areaMin}–${t.areaMax}` : t.areaMax }} m²
+                {{ t.areaMin && t.areaMin !== t.areaMax ? `${nfArea(t.areaMin)}–${nfArea(t.areaMax)}` : nfArea(t.areaMax) }} m²
               </span>
               <span v-if="t.terraco" class="inline-flex items-center h-[26px] px-2.5 rounded-full bg-brand-soft text-brand text-[12px] font-bold">Varanda</span>
             </div>

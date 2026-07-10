@@ -68,7 +68,7 @@ const inputCls =
           ></span>
         </span>
         <span class="text-[20px] font-extrabold tracking-[-0.02em] text-slate-900"
-          >Meu Revelar</span
+          >ReveLar</span
         >
       </div>
 

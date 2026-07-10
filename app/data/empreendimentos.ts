@@ -116,7 +116,7 @@ export const empreendimentos: Empreendimento[] = [
       '/img/empreendimentos/ares-do-horto/bricolagem.webp',
     ],
     seo: {
-      title: 'Ares do Horto — Apartamentos 2 dormitórios no Horto do Ipê (SP) | Meu Revelar',
+      title: 'Ares do Horto — Apartamentos 2 dormitórios no Horto do Ipê (SP) | ReveLar',
       description:
         'Ares do Horto (Plano&Plano): apartamentos de 2 dormitórios no Horto do Ipê, São Paulo, ' +
         'a partir de R$ 234.592. Simule o financiamento e fale com um corretor parceiro.',

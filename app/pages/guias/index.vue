@@ -35,7 +35,7 @@ const countText = computed(() => {
 })
 
 useHead({
-  title: 'Guias · Meu Revelar',
+  title: 'Guias · ReveLar',
   meta: [
     {
       name: 'description',

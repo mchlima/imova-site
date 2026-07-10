@@ -7,7 +7,7 @@ definePageMeta({ layout: 'default' })
 const lista = empreendimentosPublicados()
 
 useSeoMeta({
-  title: 'Empreendimentos | Meu Revelar',
+  title: 'Empreendimentos | ReveLar',
   description:
     'Lançamentos e empreendimentos com condições facilitadas na região de São Paulo. ' +
     'Simule o financiamento e fale com um corretor parceiro.',

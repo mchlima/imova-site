@@ -33,7 +33,7 @@ const { data: bairros } = await useFetch<BairroOption[]>('/developments/bairros'
 })
 
 useSeoMeta({
-  title: 'Imóveis e empreendimentos | Meu Revelar',
+  title: 'Imóveis e empreendimentos | ReveLar',
   description:
     'Encontre lançamentos e empreendimentos na região de São Paulo por região, bairro, ' +
     'estágio da obra, preço, dormitórios e mais. Simule o financiamento e fale com um corretor.',

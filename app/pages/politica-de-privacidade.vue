@@ -21,7 +21,7 @@
 
     <article class="legal max-w-[44rem] mx-auto px-6 pt-10 pb-20">
       <p class="!text-[16.5px] !text-slate-700">
-        O Meu Revelar leva a sua privacidade a sério. Esta política explica, em linguagem clara,
+        O ReveLar leva a sua privacidade a sério. Esta política explica, em linguagem clara,
         quais dados coletamos, por que coletamos e — principalmente — <b>com quem
         compartilhamos</b>. Sem letras miúdas.
       </p>
@@ -35,7 +35,7 @@
           O ponto mais importante
         </div>
         <p class="!text-[15px] !leading-[1.65] !text-slate-700 !m-0">
-          Ao enviar seus dados pelo simulador, você autoriza que o Meu Revelar compartilhe suas
+          Ao enviar seus dados pelo simulador, você autoriza que o ReveLar compartilhe suas
           informações de contato, seu perfil financeiro e suas preferências de imóvel com
           um <b>corretor de imóveis parceiro credenciado</b>, para que ele possa te atender
           e buscar imóveis compatíveis com o seu perfil.
@@ -44,7 +44,7 @@
 
       <h2>1. Quem é o controlador dos dados</h2>
       <p>
-        O Meu Revelar é a plataforma responsável (controladora) pelo tratamento dos dados
+        O ReveLar é a plataforma responsável (controladora) pelo tratamento dos dados
         pessoais coletados neste site, nos termos da Lei Geral de Proteção de Dados
         (LGPD). Dúvidas sobre seus dados podem ser enviadas ao nosso Encarregado (DPO)
         pelo e-mail <a href="#">privacidade@meurevelar.com.br</a>.
@@ -73,7 +73,7 @@
       <h2>4. Compartilhamento de dados com corretor parceiro</h2>
       <p>
         Este é o item central e queremos total transparência sobre ele. <b>Ao consentir no
-        formulário, você autoriza expressamente</b> que o Meu Revelar compartilhe seus dados
+        formulário, você autoriza expressamente</b> que o ReveLar compartilhe seus dados
         pessoais com um corretor de imóveis parceiro credenciado, incluindo:
       </p>
       <ul>

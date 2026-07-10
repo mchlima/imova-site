@@ -36,7 +36,7 @@ const cls = (key: string) => [linkBase, active.value === key ? linkOn : linkOff]
           ></span>
         </span>
         <span class="text-[19px] font-extrabold tracking-[-0.02em] text-slate-900"
-          >Meu Revelar</span
+          >ReveLar</span
         >
       </NuxtLink>
 

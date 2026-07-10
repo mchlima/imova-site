@@ -51,7 +51,7 @@ useHead(() => {
       ]
     : []
   return {
-    title: c?.metaTitle || `#${name.value} · Guias · Meu Revelar`,
+    title: c?.metaTitle || `#${name.value} · Guias · ReveLar`,
     link: c?.canonicalUrl ? [{ rel: 'canonical', href: c.canonicalUrl }] : [],
     meta: [
       { name: 'description', content: desc },

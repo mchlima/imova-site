@@ -20,18 +20,18 @@
 
     <article class="legal max-w-[44rem] mx-auto px-6 pt-10 pb-20">
       <p class="!text-[16.5px] !text-slate-700">
-        Bem-vindo ao Meu Revelar. Ao usar nossa plataforma, você concorda com estes termos.
+        Bem-vindo ao ReveLar. Ao usar nossa plataforma, você concorda com estes termos.
         Escrevemos tudo de forma direta, porque transparência é a base do que fazemos.
       </p>
 
-      <h2>1. O que o Meu Revelar é (e o que não é)</h2>
+      <h2>1. O que o ReveLar é (e o que não é)</h2>
       <p>
-        O Meu Revelar é uma <b>plataforma independente de planejamento imobiliário e
+        O ReveLar é uma <b>plataforma independente de planejamento imobiliário e
         inteligência de crédito</b>. Oferecemos ferramentas de simulação e conteúdo
         educativo, e conectamos você a corretores parceiros credenciados.
       </p>
       <p>
-        O Meu Revelar <b>não é um banco</b>, não é instituição financeira e <b>não concede
+        O ReveLar <b>não é um banco</b>, não é instituição financeira e <b>não concede
         crédito</b>. Não garantimos aprovação de financiamento, que depende exclusivamente
         da análise das instituições financeiras.
       </p>
@@ -62,14 +62,14 @@
 
       <h2>5. Propriedade intelectual</h2>
       <p>
-        A marca Meu Revelar, o conteúdo dos guias, o design e o código da plataforma são
+        A marca ReveLar, o conteúdo dos guias, o design e o código da plataforma são
         protegidos por direitos de propriedade intelectual. O uso não autorizado é
         proibido.
       </p>
 
       <h2>6. Limitação de responsabilidade</h2>
       <p>
-        O Meu Revelar se esforça para manter as informações corretas e atualizadas, mas não se
+        O ReveLar se esforça para manter as informações corretas e atualizadas, mas não se
         responsabiliza por decisões tomadas exclusivamente com base nas simulações.
         Recomendamos sempre confirmar valores com a instituição financeira, a prefeitura e
         o cartório competentes.

@@ -18,7 +18,7 @@ const headCls =
               ></span>
             </span>
             <span class="text-[19px] font-extrabold tracking-[-0.02em] text-white"
-              >Meu Revelar</span
+              >ReveLar</span
             >
           </div>
           <p class="text-[14px] leading-[1.6] text-slate-400 m-0">
@@ -78,7 +78,7 @@ const headCls =
         class="mt-12 pt-6 border-t border-slate-800 flex flex-wrap gap-3 justify-between items-center"
       >
         <span class="text-[13px] text-slate-500"
-          >© 2026 Meu Revelar · Plataforma nacional e independente</span
+          >© 2026 ReveLar · Plataforma nacional e independente</span
         >
         <span class="text-[13px] text-slate-500"
           >As simulações são estimativas e não constituem oferta de crédito.</span

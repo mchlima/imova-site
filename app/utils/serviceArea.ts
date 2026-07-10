@@ -1,4 +1,4 @@
-// Área de atuação do Meu Revelar: Região Metropolitana de São Paulo (RMSP).
+// Área de atuação do ReveLar: Região Metropolitana de São Paulo (RMSP).
 // Fonte única usada para SEO/GEO (areaServed no JSON-LD), roteamento de
 // oportunidades por cidade e conteúdo/landing pages localizados.
 // A estrutura é genérica de propósito — para expandir, basta trocar/estender.
@@ -69,7 +69,7 @@ export function realEstateAgentLd(origin: string) {
     '@context': 'https://schema.org',
     '@type': 'RealEstateAgent',
     '@id': `${origin}/#meurevelar`,
-    name: 'Meu Revelar',
+    name: 'ReveLar',
     ...(origin ? { url: origin } : {}),
     sameAs: ['https://instagram.com/meurevelar'],
     areaServed: {
