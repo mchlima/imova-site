@@ -15,7 +15,10 @@ export function useCapture() {
   const apiBase = useRuntimeConfig().public.apiBase
 
   async function submitCapture(input: CaptureInput) {
-    const stageKey = isInServiceArea(input.city || '', input.uf) ? 'Lead' : 'Nutrição'
+    // Roteamento de área do site (RMSP → Lead; fora → Nutrição). O backend
+    // resolve o estágio por `stageExternalId` (por label ou id externo); se não
+    // casar, cai no 1º estágio do board padrão.
+    const stageExternalId = isInServiceArea(input.city || '', input.uf) ? 'Lead' : 'Nutrição'
     await $fetch('/capture', {
       baseURL: apiBase,
       method: 'POST',
@@ -23,7 +26,7 @@ export function useCapture() {
         source: input.source,
         contact: input.contact,
         ...(input.fields ? { fields: input.fields } : {}),
-        stageKey,
+        stageExternalId,
       },
     })
   }

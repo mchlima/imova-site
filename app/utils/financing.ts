@@ -19,6 +19,14 @@ export const sacLast = (principal: number, i: number, n: number) =>
 export const priceInstallment = (principal: number, i: number, n: number) =>
   i === 0 ? principal / n : (principal * i) / (1 - Math.pow(1 + i, -n))
 
+// Total pago no SAC: principal + juros, com juros = P·i·(n+1)/2 (PA das parcelas).
+export const sacTotalPaid = (principal: number, i: number, n: number) =>
+  principal + (principal * i * (n + 1)) / 2
+
+// Total pago na tabela Price: parcela fixa × número de meses.
+export const priceTotalPaid = (principal: number, i: number, n: number) =>
+  priceInstallment(principal, i, n) * n
+
 // Primeira parcela conforme a tabela escolhida (SAC ou Price).
 export const firstInstallment = (
   principal: number,

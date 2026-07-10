@@ -1,13 +1,13 @@
 <script setup lang="ts">
 // Active menu item derived from the route (equivalent to the prototype's `active` prop).
-const props = defineProps<{ active?: 'inicio' | 'empreendimentos' | 'guias' | 'sim' | '' }>()
+const props = defineProps<{ active?: 'inicio' | 'imoveis' | 'guias' | 'sim' | '' }>()
 
 const route = useRoute()
 const active = computed(() => {
   if (props.active !== undefined) return props.active
   const p = route.path
   if (p === '/') return 'inicio'
-  if (p.startsWith('/empreendimentos')) return 'empreendimentos'
+  if (p.startsWith('/imoveis') || p.startsWith('/empreendimentos')) return 'imoveis'
   if (p.startsWith('/guias') || p.startsWith('/guia-')) return 'guias'
   if (p.startsWith('/simulador')) return 'sim'
   return ''
@@ -42,7 +42,7 @@ const cls = (key: string) => [linkBase, active.value === key ? linkOn : linkOff]
 
       <nav class="hidden md:flex items-center gap-1">
         <NuxtLink to="/" :class="cls('inicio')">Início</NuxtLink>
-        <NuxtLink to="/empreendimentos" :class="cls('empreendimentos')">Empreendimentos</NuxtLink>
+        <NuxtLink to="/imoveis" :class="cls('imoveis')">Imóveis</NuxtLink>
         <NuxtLink to="/guias" :class="cls('guias')">Guias</NuxtLink>
         <NuxtLink to="/simulador-avancado" :class="cls('sim')">Simulador</NuxtLink>
       </nav>

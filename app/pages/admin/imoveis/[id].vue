@@ -6,6 +6,7 @@ import {
   type AmenityDef,
   regiaoLabel,
   statusLabel,
+  developmentUrl,
 } from '~/utils/developmentModel'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
@@ -24,6 +25,8 @@ interface TypoForm {
   priceFrom: string
   parking: string
   terraco: boolean
+  imageUrl: string
+  imageStorageKey: string
 }
 
 const form = reactive({
@@ -41,6 +44,7 @@ const form = reactive({
 })
 const images = ref<DevelopmentImage[]>([])
 const published = ref(false)
+const publicUrl = ref('')
 const meta = ref<DevelopmentsMeta>({ amenities: [], regioes: [], statuses: [] })
 const loaded = ref(false)
 const saving = ref(false)
@@ -70,10 +74,12 @@ function load() {
       typologies: d.typologies.map((t) => ({
         label: t.label, bedrooms: s(t.bedrooms), suites: s(t.suites), areaMin: s(t.areaMin || ''),
         areaMax: s(t.areaMax || ''), priceFrom: s(t.priceFrom), parking: s(t.parking), terraco: t.terraco,
+        imageUrl: t.imageUrl || '', imageStorageKey: t.imageStorageKey || '',
       })),
     })
     images.value = d.images
     published.value = d.published
+    publicUrl.value = developmentUrl(d)
     loaded.value = true
   })
 }
@@ -96,10 +102,37 @@ function toggleAmenity(slug: string) {
 
 // ── tipologias ──
 function addTypo() {
-  form.typologies.push({ label: '', bedrooms: '', suites: '', areaMin: '', areaMax: '', priceFrom: '', parking: '', terraco: false })
+  form.typologies.push({ label: '', bedrooms: '', suites: '', areaMin: '', areaMax: '', priceFrom: '', parking: '', terraco: false, imageUrl: '', imageStorageKey: '' })
 }
 function removeTypo(i: number) {
   form.typologies.splice(i, 1)
+}
+
+// upload da planta de uma tipologia → guarda url+storageKey no form (salvo junto)
+const typoUploading = ref<number | null>(null)
+async function uploadTypoPlanta(i: number, ev: Event) {
+  const input = ev.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  typoUploading.value = i
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await api<{ url: string; storageKey: string }>(
+      `/admin/developments/${id}/typology-image`,
+      { method: 'POST', body: fd },
+    )
+    const t = form.typologies[i]
+    if (t) {
+      t.imageUrl = res.url
+      t.imageStorageKey = res.storageKey
+    }
+  } catch {
+    flash('Erro ao enviar planta')
+  } finally {
+    typoUploading.value = null
+    input.value = ''
+  }
 }
 
 // ── salvar ──
@@ -126,6 +159,7 @@ function body() {
         label: t.label.trim(), bedrooms: nInt(t.bedrooms) ?? 0, suites: nInt(t.suites),
         areaMin: nFloat(t.areaMin) ?? 0, areaMax: nFloat(t.areaMax) ?? 0, priceFrom: nInt(t.priceFrom),
         parking: nInt(t.parking), terraco: t.terraco, order: i,
+        imageUrl: t.imageUrl, imageStorageKey: t.imageStorageKey,
       })),
   }
 }
@@ -218,7 +252,7 @@ const input = 'w-full h-[38px] px-3 text-[13.5px] text-slate-900 border border-s
           <template v-if="menuOpen">
             <div class="fixed inset-0 z-20" @click="menuOpen = false"></div>
             <div class="absolute right-0 top-11 z-30 w-52 bg-white border border-slate-200 rounded-xl shadow-[0_12px_30px_-12px_rgba(15,23,42,0.25)] overflow-hidden py-1">
-              <a v-if="published" :href="`/${form.slug}`" target="_blank" class="flex items-center gap-2.5 px-4 py-2.5 text-[13.5px] font-medium text-slate-700 no-underline hover:bg-slate-50">
+              <a v-if="published" :href="publicUrl" target="_blank" class="flex items-center gap-2.5 px-4 py-2.5 text-[13.5px] font-medium text-slate-700 no-underline hover:bg-slate-50">
                 <AdminIcon name="eye" :size="15" /> Ver no site
               </a>
               <button v-if="published" class="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13.5px] font-medium text-slate-700 hover:bg-slate-50 cursor-pointer bg-transparent border-none text-left" @click="unpublish">
@@ -334,9 +368,22 @@ const input = 'w-full h-[38px] px-3 text-[13.5px] text-slate-900 border border-s
               <div><label :class="label">Vagas</label><input v-model="t.parking" :class="input" inputmode="numeric" /></div>
               <div><label :class="label">A partir de (R$)</label><input v-model="t.priceFrom" :class="input" inputmode="numeric" /></div>
             </div>
+            <!-- planta desta tipologia -->
+            <div class="flex items-center gap-3 mt-3">
+              <div class="w-20 h-16 rounded-md border border-slate-200 bg-slate-50 overflow-hidden shrink-0 flex items-center justify-center">
+                <img v-if="t.imageUrl" :src="t.imageUrl" alt="Planta" class="w-full h-full object-cover" />
+                <span v-else class="text-[10px] text-slate-400 text-center px-1 leading-tight">sem planta</span>
+              </div>
+              <label class="inline-flex items-center gap-1.5 h-[34px] px-3 text-[12.5px] font-semibold text-slate-700 border border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50">
+                <AppSpinner v-if="typoUploading === i" :size="13" />
+                {{ t.imageUrl ? 'Trocar planta' : 'Enviar planta' }}
+                <input type="file" accept="image/*" class="hidden" @change="uploadTypoPlanta(i, $event)" />
+              </label>
+              <button v-if="t.imageUrl" type="button" class="text-[12px] font-semibold text-slate-400 hover:text-red-600 bg-transparent border-none cursor-pointer" @click="t.imageUrl = ''; t.imageStorageKey = ''">Remover planta</button>
+            </div>
             <div class="flex items-center justify-between mt-2.5">
               <label class="inline-flex items-center gap-2 text-[12.5px] font-semibold text-slate-600 cursor-pointer">
-                <input v-model="t.terraco" type="checkbox" class="w-4 h-4 accent-[color:var(--color-brand,#146c4e)]" /> Com terraço
+                <input v-model="t.terraco" type="checkbox" class="w-4 h-4 accent-[color:var(--color-brand,#146c4e)]" /> Varanda
               </label>
               <button class="text-[12px] font-semibold text-red-600 hover:underline bg-transparent border-none cursor-pointer" @click="removeTypo(i)">Remover</button>
             </div>

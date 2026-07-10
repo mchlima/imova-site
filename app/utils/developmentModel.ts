@@ -10,8 +10,10 @@ export interface DevelopmentTypology {
   areaMax: number
   priceFrom: number | null
   parking: number | null
-  terraco: boolean
+  terraco: boolean // exibido como "Varanda"
   order: number
+  imageUrl: string // planta desta tipologia (1:1)
+  imageStorageKey: string
 }
 
 export interface DevelopmentImage {
@@ -130,6 +132,23 @@ export const REGIAO_LABELS: Record<DevelopmentRegiao, string> = {
   grande_sp: 'Grande SP',
 }
 
+// ordem do ciclo de vida da obra (para a linha do tempo de status)
+export const STATUS_ORDER: DevelopmentStatus[] = [
+  'futuro_lancamento',
+  'breve_lancamento',
+  'lancamento',
+  'em_construcao',
+  'imovel_pronto',
+]
+// rótulos curtos usados na linha do tempo
+export const STATUS_STEP_LABEL: Record<DevelopmentStatus, string> = {
+  futuro_lancamento: 'Futuro Lançamento',
+  breve_lancamento: 'Breve Lançamento',
+  lancamento: 'Lançamento',
+  em_construcao: 'Em Construção',
+  imovel_pronto: 'Pronto',
+}
+
 export const statusLabel = (s: DevelopmentStatus) => STATUS_META[s]?.label ?? s
 export const statusBadgeStyle = (s: DevelopmentStatus) => {
   const c = STATUS_META[s]?.color ?? '#64748B'
@@ -140,6 +159,15 @@ export const regiaoLabel = (r: DevelopmentRegiao) => REGIAO_LABELS[r] ?? r
 // imagem de capa: a hero, senão a primeira
 export const heroImage = (d: Development) =>
   d.images.find((i) => i.kind === 'hero')?.url || d.images[0]?.url || ''
+
+// URL canônica profunda (SEO) da LP: /imoveis/{uf}/{cidade}/{tipo}/{bairro}/{slug}
+export const developmentUrl = (d: {
+  uf: string
+  cidadeSlug: string
+  tipo: string
+  bairroSlug: string
+  slug: string
+}) => `/imoveis/${d.uf.toLowerCase()}/${d.cidadeSlug}/${d.tipo}/${d.bairroSlug}/${d.slug}`
 
 // rótulo de dormitórios a partir das facetas
 export const dormsLabel = (d: Development) => {

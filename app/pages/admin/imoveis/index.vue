@@ -3,6 +3,7 @@ import {
   type DevelopmentStatus,
   statusLabel,
   statusBadgeStyle,
+  developmentUrl,
 } from '~/utils/developmentModel'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
@@ -13,7 +14,10 @@ interface DevRow {
   slug: string
   name: string
   bairro: string
+  bairroSlug: string
   cidade: string
+  cidadeSlug: string
+  tipo: string
   uf: string
   status: DevelopmentStatus
   published: boolean
@@ -192,7 +196,7 @@ const selectCls =
                   <NuxtLink :to="`/admin/imoveis/${r.id}`" class="flex items-center gap-2.5 px-4 py-2.5 text-[13.5px] font-medium text-slate-700 no-underline hover:bg-slate-50">
                     <AdminIcon name="draft" :size="15" /> Editar
                   </NuxtLink>
-                  <a v-if="r.published" :href="`/${r.slug}`" target="_blank" class="flex items-center gap-2.5 px-4 py-2.5 text-[13.5px] font-medium text-slate-700 no-underline hover:bg-slate-50">
+                  <a v-if="r.published" :href="developmentUrl(r)" target="_blank" class="flex items-center gap-2.5 px-4 py-2.5 text-[13.5px] font-medium text-slate-700 no-underline hover:bg-slate-50">
                     <AdminIcon name="eye" :size="15" /> Ver no site
                   </a>
                   <div class="h-px bg-slate-100 my-1"></div>

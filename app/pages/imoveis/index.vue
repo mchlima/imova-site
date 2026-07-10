@@ -10,6 +10,7 @@ import {
   regiaoLabel,
   heroImage,
   dormsLabel,
+  developmentUrl,
 } from '~/utils/developmentModel'
 import { fmtBRL } from '~/utils/opportunityModel'
 
@@ -284,7 +285,7 @@ watch(
         <NuxtLink
           v-for="d in filtered"
           :key="d.id"
-          :to="`/${d.slug}`"
+          :to="developmentUrl(d)"
           class="group block no-underline bg-white border border-slate-200 rounded-[14px] overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_12px_30px_-14px_rgba(15,23,42,0.25)] hover:border-slate-300 transition-all"
         >
           <div class="relative aspect-[4/3] bg-slate-100 overflow-hidden">

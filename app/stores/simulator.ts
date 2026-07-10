@@ -379,7 +379,7 @@ export const useSimulatorStore = defineStore('simulator', {
       // 'Nutrição'; dentro → fluxo inicial 'Lead'.
       const apiBase = useRuntimeConfig().public.apiBase
       if (apiBase) {
-        const stageKey = isInServiceArea(this.city, this.uf) ? 'Lead' : 'Nutrição'
+        const stageExternalId = isInServiceArea(this.city, this.uf) ? 'Lead' : 'Nutrição'
         const body = {
           source: 'simulador',
           contact: {
@@ -402,7 +402,7 @@ export const useSimulatorStore = defineStore('simulator', {
               buyerType: this.buyerType,
             },
           },
-          stageKey,
+          stageExternalId,
         }
         try {
           await $fetch('/capture', { baseURL: apiBase, method: 'POST', body })
