@@ -45,7 +45,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
 
     <div
       v-if="openList"
-      class="absolute top-full left-0 mt-1.5 z-[10] w-[240px] max-h-[280px] overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-[0_8px_28px_-8px_rgba(15,23,42,0.25)] p-1.5"
+      class="absolute top-full right-0 mt-1.5 z-[10] w-[240px] max-h-[280px] overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-[0_8px_28px_-8px_rgba(15,23,42,0.25)] p-1.5"
     >
       <div v-if="!users.length" class="px-2 py-2 text-[12.5px] text-slate-400">Nenhum usuário.</div>
       <button

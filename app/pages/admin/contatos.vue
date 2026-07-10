@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { type Contact, contactEmail, contactWhatsapp } from '~/utils/opportunityModel'
+import {
+  type Contact,
+  type Opportunity,
+  type RawOpportunity,
+  contactEmail,
+  contactWhatsapp,
+  mapOpportunity,
+} from '~/utils/opportunityModel'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 useHead({ meta: [{ name: 'robots', content: 'noindex, nofollow' }] })
@@ -51,6 +58,7 @@ const filtered = computed(() => {
 })
 
 // drawer do contato
+const contactDrawer = ref<{ reload: () => void } | null>(null)
 const drawerOpen = ref(false)
 const selectedId = ref<string | null>(null)
 function openContact(id: string) {
@@ -60,6 +68,33 @@ function openContact(id: string) {
 // contato editado no ContactCard → reflete na lista
 function onContactUpdated(c: Contact) {
   contacts.value = contacts.value.map((r) => (r.id === c.id ? { ...r, ...c } : r))
+}
+
+// oportunidade aberta a partir do drawer do contato (por cima dele)
+const oppOpen = ref(false)
+const selectedOpp = ref<Opportunity | null>(null)
+async function openOpportunity(id: string) {
+  try {
+    const raw = await $fetch<RawOpportunity>(`/opportunities/${id}`, {
+      baseURL: apiBase,
+      credentials: 'include',
+    })
+    selectedOpp.value = mapOpportunity(raw)
+    // abre por cima do drawer do contato (sem fechá-lo)
+    oppOpen.value = true
+  } catch {
+    /* silencioso — a oportunidade pode ter sido removida */
+  }
+}
+// edições na oportunidade refletem no drawer do contato (lista) e nos contadores
+function onOpportunityUpdated(o: Opportunity) {
+  selectedOpp.value = o
+  contactDrawer.value?.reload()
+}
+function onOpportunityDeleted() {
+  oppOpen.value = false
+  contactDrawer.value?.reload()
+  load()
 }
 
 // criação manual (NewContactDrawer)
@@ -141,7 +176,24 @@ const th = 'text-left py-3 px-3 text-[11px] font-bold uppercase tracking-[0.04em
       </div>
     </div>
 
-    <ContactDrawer v-model="drawerOpen" :contact-id="selectedId" @updated="onContactUpdated" />
+    <ContactDrawer
+      ref="contactDrawer"
+      v-model="drawerOpen"
+      :contact-id="selectedId"
+      @updated="onContactUpdated"
+      @open-opportunity="openOpportunity"
+    />
+    <!-- contexto de empilhamento acima do drawer de contato (z-[51]) para o
+         drawer de oportunidade abrir SOBRE ele, sem alterar seu z-index interno -->
+    <div class="relative z-[60]">
+      <OpportunityDrawer
+        v-model="oppOpen"
+        :opportunity="selectedOpp"
+        @updated="onOpportunityUpdated"
+        @moved="onOpportunityUpdated"
+        @deleted="onOpportunityDeleted"
+      />
+    </div>
     <NewContactDrawer v-model="newOpen" @created="onContactCreated" />
   </div>
 </template>

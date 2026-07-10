@@ -23,6 +23,9 @@ const open = computed({
   set: (v) => emit('update:modelValue', v),
 })
 
+// usuário logado — responsável padrão da oportunidade
+const { user: currentUser } = useAuth()
+
 // funil e campos como dado — estágios escopados ao board de destino
 const { loadStages, stagesFor } = useStages()
 const { sections, loadFieldDefinitions } = useFieldDefinitions()
@@ -90,7 +93,10 @@ function reset() {
   temperature.value = 'Sem classificação'
   title.value = ''
   source.value = ''
-  assignees.value = []
+  // por padrão, a oportunidade fica com quem está criando
+  assignees.value = currentUser.value
+    ? [{ id: currentUser.value.id, name: currentUser.value.name }]
+    : []
   for (const k of Object.keys(fieldValues)) delete fieldValues[k]
   error.value = ''
 }

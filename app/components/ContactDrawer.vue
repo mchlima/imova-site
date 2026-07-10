@@ -1,17 +1,28 @@
 <script setup lang="ts">
-import { type Contact, fmtBRL, fmtOpportunityDate, oppCity, oppUf, oppPropertyValue } from '~/utils/opportunityModel'
+import { type Contact, fmtOpportunityDate } from '~/utils/opportunityModel'
 
 const props = defineProps<{ modelValue: boolean; contactId: string | null }>()
-const emit = defineEmits<{ 'update:modelValue': [boolean]; updated: [Contact] }>()
+const emit = defineEmits<{
+  'update:modelValue': [boolean]
+  updated: [Contact]
+  'open-opportunity': [string]
+}>()
 
 const apiBase = useRuntimeConfig().public.apiBase
 
 interface OppSummary {
   id: string
+  title?: string
+  description?: string
   stageId: string | null
   temperature: string
   fields: Record<string, unknown>
   createdAt: string
+  assignees?: { id: string; name: string }[]
+  comments?: { id: string }[]
+  tasks?: { done: boolean }[]
+  activities?: { done: boolean; dueAt: string | null }[]
+  _count?: { documents?: number }
 }
 type ContactDetail = Contact & { opportunities: OppSummary[] }
 
@@ -34,6 +45,21 @@ async function load(id: string) {
   }
 }
 
+// recarrega silenciosamente (sem flash de skeleton) — usado após editar/excluir
+// uma oportunidade no OpportunityDrawer aberto por cima deste drawer
+async function reload() {
+  if (!props.contactId) return
+  try {
+    detail.value = await $fetch<ContactDetail>(`/contacts/${props.contactId}`, {
+      baseURL: apiBase,
+      credentials: 'include',
+    })
+  } catch {
+    /* mantém o que tiver */
+  }
+}
+defineExpose({ reload })
+
 // carrega ao abrir (ou ao trocar de contato com o drawer já aberto)
 watch(
   () => [props.modelValue, props.contactId] as const,
@@ -48,10 +74,6 @@ function onContactUpdated(c: Contact) {
   if (detail.value) detail.value = { ...detail.value, ...c }
   emit('updated', c)
 }
-
-// funil como dado — cor do badge de status vem de GET /stages
-const { loadStages, stageBadgeStyle, stageLabel } = useStages()
-loadStages()
 
 // animações: backdrop (fade) e painel (slide da direita)
 const fadeT = {
@@ -111,27 +133,29 @@ const slideT = {
             Nenhuma oportunidade.
           </div>
           <div v-else class="flex flex-col gap-2">
-            <NuxtLink
+            <button
               v-for="o in detail.opportunities"
               :key="o.id"
-              :to="`/admin/pipelines?oportunidade=${o.id}`"
-              class="flex items-center justify-between gap-2 border border-slate-100 rounded-lg px-3 py-2.5 no-underline hover:border-slate-300 transition-colors"
+              type="button"
+              class="block w-full text-left border border-slate-100 rounded-lg px-3 py-2.5 bg-transparent cursor-pointer hover:border-slate-300 transition-colors"
+              @click="emit('open-opportunity', o.id)"
             >
-              <div class="min-w-0">
-                <div class="text-[13.5px] font-semibold text-slate-800 truncate">
-                  {{ fmtBRL(oppPropertyValue(o)) }}
-                  <span v-if="oppCity(o)" class="font-normal text-slate-400"
-                    >· {{ oppCity(o) }}{{ oppUf(o) ? '/' + oppUf(o) : '' }}</span
-                  >
-                </div>
-                <div class="text-[12px] text-slate-400">{{ fmtOpportunityDate(o.createdAt) }}</div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[13.5px] font-semibold text-slate-800 truncate">
+                  {{ (o.title || '').trim() || detail.name }}
+                </span>
+                <span class="text-[12px] text-slate-400 shrink-0">{{ fmtOpportunityDate(o.createdAt) }}</span>
               </div>
-              <span
-                class="inline-flex items-center h-[22px] px-2 rounded-md text-[11px] font-semibold shrink-0"
-                :style="stageBadgeStyle(o.stageId)"
-                >{{ stageLabel(o.stageId) }}</span
-              >
-            </NuxtLink>
+              <!-- rodapé: mesmos indicadores do card do kanban -->
+              <OpportunityCardFooter
+                :has-description="!!o.description"
+                :tasks="o.tasks"
+                :comments-count="o.comments?.length"
+                :documents-count="o._count?.documents"
+                :activities="o.activities"
+                :assignees="o.assignees"
+              />
+            </button>
           </div>
         </div>
 

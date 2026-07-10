@@ -767,35 +767,15 @@ async function persistBoard() {
                       >{{ nextActivity(o)!.label }}</span
                     >
                   </div>
-                  <!-- rodapé: indicadores (só o ícone, sem quantidade) + responsáveis à direita -->
-                  <div
-                    v-if="o.description || o.tasks?.length || o.documentsCount || o.comments?.length || o.assignees?.length"
-                    class="flex items-center gap-2.5 mt-2.5 pt-2 border-t border-slate-100 text-slate-400"
-                  >
-                    <span v-if="o.description" class="inline-flex" title="Tem descrição">
-                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 6h16M4 12h16M4 18h10" />
-                      </svg>
-                    </span>
-                    <span v-if="o.tasks?.length" class="inline-flex" title="Tem tarefas">
-                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9 11l3 3L22 4" />
-                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-                      </svg>
-                    </span>
-                    <span v-if="o.documentsCount" class="inline-flex" title="Tem documentos anexados">
-                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3 3 0 0 1 4.24 4.24l-9.19 9.19a1 1 0 0 1-1.41-1.41l8.48-8.49" />
-                      </svg>
-                    </span>
-                    <span v-if="o.comments?.length" class="inline-flex" title="Tem comentários">
-                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                      </svg>
-                    </span>
-                    <!-- responsáveis à direita -->
-                    <AvatarStack v-if="o.assignees?.length" :users="o.assignees" :size="20" :max="3" class="ml-auto" />
-                  </div>
+                  <!-- rodapé: indicadores (tarefas concluídas/total, atividades, anexos, comentários) + responsáveis -->
+                  <OpportunityCardFooter
+                    :has-description="!!o.description"
+                    :tasks="o.tasks"
+                    :comments-count="o.comments?.length"
+                    :documents-count="o.documentsCount"
+                    :activities="o.activities"
+                    :assignees="o.assignees"
+                  />
                 </div>
               </template>
               <template #footer>
