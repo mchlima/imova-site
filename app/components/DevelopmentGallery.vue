@@ -39,19 +39,20 @@ async function toWebp(file: File): Promise<Blob> {
   )
 }
 
-async function onPick(e: Event) {
-  const files = Array.from((e.target as HTMLInputElement).files ?? [])
-  if (fileInput.value) fileInput.value.value = ''
-  if (!files.length) return
+// pipeline compartilhado (seletor de arquivos e drag-and-drop): filtra imagens,
+// converte p/ WebP no navegador e envia uma a uma como 'lazer'.
+async function handleFiles(files: File[]) {
+  if (busy.value) return
+  const imgs = files.filter((f) => f.type.startsWith('image/'))
+  if (!imgs.length) return
   error.value = ''
   busy.value = true
   let last: Development | null = null
   try {
     let i = 0
-    for (const file of files) {
+    for (const file of imgs) {
       i++
-      if (!file.type.startsWith('image/')) continue
-      progress.value = `Enviando ${i}/${files.length}…`
+      progress.value = `Enviando ${i}/${imgs.length}…`
       const webp = await toWebp(file)
       const fd = new FormData()
       fd.append('file', new File([webp], 'img.webp', { type: 'image/webp' }))
@@ -67,6 +68,27 @@ async function onPick(e: Event) {
     busy.value = false
     progress.value = ''
   }
+}
+
+function onPick(e: Event) {
+  const el = e.target as HTMLInputElement
+  const files = Array.from(el.files ?? [])
+  el.value = ''
+  handleFiles(files)
+}
+
+// drag-and-drop: dragDepth conta enter/leave (evita flicker ao passar por filhos)
+const dragDepth = ref(0)
+const dragActive = computed(() => dragDepth.value > 0)
+function onDragEnter() {
+  dragDepth.value++
+}
+function onDragLeave() {
+  dragDepth.value = Math.max(0, dragDepth.value - 1)
+}
+function onDrop(e: DragEvent) {
+  dragDepth.value = 0
+  handleFiles(Array.from(e.dataTransfer?.files ?? []))
 }
 
 async function patchImage(imageId: string, body: Record<string, unknown>) {
@@ -137,11 +159,26 @@ function trigger() {
 </script>
 
 <template>
-  <div>
+  <div
+    class="relative rounded-xl transition-colors"
+    :class="dragActive ? 'ring-2 ring-brand ring-offset-2' : ''"
+    @dragenter.prevent="onDragEnter"
+    @dragover.prevent
+    @dragleave.prevent="onDragLeave"
+    @drop.prevent="onDrop"
+  >
     <input ref="fileInput" type="file" accept="image/*" multiple class="hidden" @change="onPick" />
 
+    <!-- overlay ao arrastar -->
+    <div
+      v-if="dragActive"
+      class="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-brand-soft/80 backdrop-blur-[1px] border-2 border-dashed border-brand pointer-events-none"
+    >
+      <span class="text-[14px] font-bold text-brand">Solte as imagens para enviar</span>
+    </div>
+
     <div class="flex items-center justify-between mb-3">
-      <span class="text-[12.5px] text-slate-500">{{ images.length }} imagem(ns) · converte para WebP automaticamente</span>
+      <span class="text-[12.5px] text-slate-500">{{ images.length }} imagem(ns) · arraste e solte ou clique · converte para WebP</span>
       <button
         type="button"
         class="inline-flex items-center gap-1.5 h-9 px-3.5 bg-brand text-white text-[13px] font-semibold rounded-lg cursor-pointer border-none hover:bg-brand-dark disabled:opacity-60"
@@ -154,9 +191,17 @@ function trigger() {
     </div>
     <p v-if="error" class="text-[12.5px] font-semibold text-red-600 mb-2">{{ error }}</p>
 
-    <div v-if="!images.length" class="border-2 border-dashed border-slate-300 rounded-xl py-10 text-center text-[13px] text-slate-400">
-      Nenhuma imagem ainda. Envie fotos do lazer, plantas e a capa.
-    </div>
+    <button
+      v-if="!images.length"
+      type="button"
+      class="block w-full border-2 border-dashed rounded-xl py-10 text-center text-[13px] cursor-pointer transition-colors bg-transparent"
+      :class="dragActive ? 'border-brand text-brand' : 'border-slate-300 text-slate-400 hover:border-brand hover:text-brand'"
+      :disabled="busy"
+      @click="trigger"
+    >
+      Arraste e solte as imagens aqui, ou clique para escolher.<br />
+      Fotos do lazer, plantas e a capa.
+    </button>
 
     <div v-else class="grid grid-cols-2 sm:grid-cols-3 gap-3">
       <div v-for="(img, i) in images" :key="img.id" class="border border-slate-200 rounded-xl overflow-hidden bg-white">
