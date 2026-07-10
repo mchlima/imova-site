@@ -35,6 +35,13 @@ defineProps<{ name: string; size?: number }>()
       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
       <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
     </template>
+    <template v-else-if="name === 'imoveis'">
+      <path d="M3 21h18" />
+      <path d="M5 21V6l7-3 7 3v15" />
+      <path d="M10 21v-5h4v5" />
+      <line x1="9" y1="9" x2="9" y2="9.01" />
+      <line x1="15" y1="9" x2="15" y2="9.01" />
+    </template>
     <template v-else-if="name === 'posts'">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <polyline points="14 2 14 8 20 8" />

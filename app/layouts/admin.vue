@@ -43,6 +43,7 @@ const nav: NavItem[] = [
       { label: 'Tags', to: '/admin/tags', icon: 'tags' },
     ],
   },
+  { label: 'Imóveis', to: '/admin/imoveis', icon: 'imoveis' },
   { label: 'Taxas', to: '/admin/taxas', icon: 'taxas' },
 ]
 
