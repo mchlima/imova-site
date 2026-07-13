@@ -284,7 +284,9 @@ const th = 'text-left py-3 px-3 text-[11px] font-bold uppercase tracking-[0.04em
             </colgroup>
             <thead>
               <tr class="bg-slate-50 border-b border-slate-200">
-                <th class="py-3 pl-4 pr-0">
+                <!-- text-left explícito: <th> centraliza por padrão e o checkbox
+                     sairia do eixo dos das linhas, que ficam em <td> -->
+                <th class="py-3 pl-4 pr-0 text-left">
                   <input
                     type="checkbox"
                     class="w-4 h-4 accent-brand cursor-pointer align-middle"
