@@ -22,9 +22,12 @@ const { loadStages, kanbanStagesFor, stagesFor, stageBadgeStyle, stageLabel } = 
 // abre no pipeline do usuário (dono), mas ninguém fica bloqueado de ver os outros.
 const { pipelines, loadPipelines } = usePipelines()
 
-// usuários (responsáveis) — usados no menu de ações rápidas do card
+// usuários (responsáveis) — menu de ações rápidas do card e filtro de responsáveis
 const { users, loadUsers } = useUsers()
 loadUsers()
+
+// usuário logado — alimenta o atalho "Minhas oportunidades"
+const { user: me } = useAuth()
 
 const activePipelineId = ref<string>('')
 const orderedBoards = computed(() => [...pipelines.value].sort((a, b) => a.order - b.order))
@@ -67,6 +70,52 @@ const fTemperature = ref('')
 const fUf = ref('')
 const fCity = ref('')
 const fRange = ref<DateRange>({ start: '', end: '' })
+
+// Responsáveis: atalho "minhas" + escolha de pessoas. A semântica é OU — a
+// oportunidade aparece se estiver com QUALQUER um dos responsáveis escolhidos
+// (eu incluído). Sem nada escolhido, o filtro não interfere.
+const UNASSIGNED = '__none__'
+const fMine = ref(false)
+const fAssignees = ref<Set<string>>(new Set())
+
+const wantedAssignees = computed(() => {
+  const s = new Set(fAssignees.value)
+  if (fMine.value && me.value) s.add(me.value.id)
+  return s
+})
+function matchesAssignee(o: Opportunity) {
+  const wanted = wantedAssignees.value
+  if (!wanted.size) return true
+  const ids = (o.assignees ?? []).map((a) => a.id)
+  if (wanted.has(UNASSIGNED) && ids.length === 0) return true
+  return ids.some((id) => wanted.has(id))
+}
+
+const assigneesOpen = ref(false)
+// "minhas" conta como 1 mesmo se eu também estiver marcado na lista (é o mesmo filtro)
+const activeAssignees = computed(() => wantedAssignees.value.size)
+
+function toggleAssignee(id: string) {
+  const s = new Set(fAssignees.value)
+  if (s.has(id)) s.delete(id)
+  else s.add(id)
+  fAssignees.value = s
+}
+function toggleMine() {
+  fMine.value = !fMine.value
+  // marcar "minhas" e me manter na lista mostraria o mesmo filtro em dois lugares
+  if (fMine.value && me.value) {
+    const s = new Set(fAssignees.value)
+    s.delete(me.value.id)
+    fAssignees.value = s
+  }
+}
+function clearAssignees() {
+  fMine.value = false
+  fAssignees.value = new Set()
+}
+// os outros usuários vêm depois de mim — "minhas" já é o atalho para o meu próprio
+const otherUsers = computed(() => users.value.filter((u) => u.id !== me.value?.id))
 
 // cor de realce da temperatura (usada na borda do card do kanban)
 const tempColor = (t: string) => TEMP_HEX[t] || '#94A3B8'
@@ -184,6 +233,7 @@ const filtered = computed(() => {
     if (fTemperature.value && l.temperature !== fTemperature.value) return false
     if (fUf.value && l.contact.residenceUf !== fUf.value) return false
     if (fCity.value && l.contact.residenceCity !== fCity.value) return false
+    if (!matchesAssignee(l)) return false
     if (fRange.value.start || fRange.value.end) {
       const day = l.createdAt.slice(0, 10) // 'YYYY-MM-DD'
       if (fRange.value.start && day < fRange.value.start) return false
@@ -372,6 +422,128 @@ async function persistBoard() {
         <!-- grupo à direita: data + filtros | divisória | alternância de visão -->
         <div class="ml-auto flex items-center gap-2.5">
         <DateRangePicker v-model="fRange" icon-only />
+
+        <!-- RESPONSÁVEIS (só ícone + painel suspenso) -->
+        <div class="relative">
+          <button
+            class="relative inline-flex items-center justify-center w-[38px] h-[38px] bg-white border rounded-[7px] cursor-pointer transition-all"
+            :class="
+              activeAssignees > 0
+                ? 'border-brand/40 text-brand hover:bg-brand-soft'
+                : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+            "
+            title="Responsáveis"
+            @click="assigneesOpen = !assigneesOpen"
+          >
+            <svg
+              class="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span
+              v-if="activeAssignees > 0"
+              class="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-brand text-white text-[11px] font-bold"
+              >{{ activeAssignees }}</span
+            >
+          </button>
+
+          <div
+            v-if="assigneesOpen"
+            class="fixed inset-0 z-30"
+            @click="assigneesOpen = false"
+          ></div>
+
+          <div
+            v-if="assigneesOpen"
+            class="absolute right-0 mt-2 z-40 w-[min(92vw,300px)] bg-white border border-slate-200 rounded-xl shadow-[0_12px_30px_-12px_rgba(15,23,42,0.25)]"
+          >
+            <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+              <span class="text-[13px] font-bold text-slate-900">Responsáveis</span>
+              <button
+                v-if="activeAssignees > 0"
+                type="button"
+                class="text-[12.5px] font-semibold text-brand hover:underline cursor-pointer bg-transparent border-none p-0"
+                @click="clearAssignees"
+              >
+                Limpar
+              </button>
+            </div>
+
+            <div class="p-2 flex flex-col max-h-[min(60vh,360px)] overflow-y-auto">
+              <!-- atalho: só as minhas -->
+              <button
+                type="button"
+                class="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg text-left cursor-pointer border transition-colors"
+                :class="
+                  fMine
+                    ? 'bg-brand-soft border-brand/30 text-brand'
+                    : 'bg-transparent border-transparent text-slate-700 hover:bg-slate-50'
+                "
+                @click="toggleMine"
+              >
+                <span
+                  class="inline-flex items-center justify-center w-4 h-4 rounded-[4px] border shrink-0"
+                  :class="fMine ? 'bg-brand border-brand text-white' : 'border-slate-300'"
+                >
+                  <svg v-if="fMine" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                </span>
+                <span class="text-[13.5px] font-semibold">Minhas oportunidades</span>
+              </button>
+
+              <div class="h-px bg-slate-100 my-1.5"></div>
+
+              <label
+                v-for="u in otherUsers"
+                :key="u.id"
+                class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors select-none"
+              >
+                <input
+                  type="checkbox"
+                  :checked="fAssignees.has(u.id)"
+                  class="w-4 h-4 accent-brand cursor-pointer shrink-0"
+                  @change="toggleAssignee(u.id)"
+                />
+                <AvatarStack :users="[u]" :size="24" :max="1" />
+                <span class="text-[13.5px] text-slate-700 truncate">{{ u.name }}</span>
+              </label>
+
+              <div class="h-px bg-slate-100 my-1.5"></div>
+
+              <label
+                class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors select-none"
+              >
+                <input
+                  type="checkbox"
+                  :checked="fAssignees.has(UNASSIGNED)"
+                  class="w-4 h-4 accent-brand cursor-pointer shrink-0"
+                  @change="toggleAssignee(UNASSIGNED)"
+                />
+                <span class="text-[13.5px] text-slate-500">Sem responsável</span>
+              </label>
+            </div>
+
+            <div
+              class="flex justify-end px-4 py-3 border-t border-slate-100 bg-slate-50 rounded-b-xl"
+            >
+              <button
+                type="button"
+                class="h-[36px] px-4 bg-brand text-white text-[13px] font-semibold rounded-[7px] cursor-pointer transition-all hover:bg-brand-dark border-none"
+                @click="assigneesOpen = false"
+              >
+                Aplicar
+              </button>
+            </div>
+          </div>
+        </div>
 
         <!-- FILTROS (só ícone + painel suspenso) -->
         <div class="relative">
