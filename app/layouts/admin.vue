@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { user, logout } = useAuth()
+const { user, logout, can } = useAuth()
 const route = useRoute()
 
 // boards (pipelines) como sub-itens dinâmicos de "Pipelines"
@@ -17,6 +17,8 @@ interface NavItem {
   icon: string
   children?: NavItem[]
   boards?: boolean
+  /** Permissão mínima para ver o item. Sem isso, o item é visível a qualquer logado. */
+  perm?: string
 }
 const nav: NavItem[] = [
   { label: 'Dashboard', to: '/admin/dashboard', icon: 'dashboard' },
@@ -24,28 +26,43 @@ const nav: NavItem[] = [
     label: 'CRM',
     to: '/admin/crm',
     icon: 'opportunities',
+    perm: 'opportunities:read',
     children: [
       // Pipelines: dono + funil de cada pipeline são configurados pelo ⚙ na página do
       // pipeline. "Configurações" aqui é global do CRM (campos personalizados).
-      { label: 'Pipelines', to: '/admin/pipelines', icon: 'opportunities', boards: true },
-      { label: 'Contatos', to: '/admin/contatos', icon: 'contacts' },
-      { label: 'Follow-up', to: '/admin/follow-up', icon: 'followup' },
-      { label: 'Configurações', to: '/admin/configuracoes', icon: 'settings' },
+      { label: 'Pipelines', to: '/admin/pipelines', icon: 'opportunities', boards: true, perm: 'opportunities:read' },
+      { label: 'Contatos', to: '/admin/contatos', icon: 'contacts', perm: 'contacts:read' },
+      { label: 'Follow-up', to: '/admin/follow-up', icon: 'followup', perm: 'opportunities:read' },
+      { label: 'Configurações', to: '/admin/configuracoes', icon: 'settings', perm: 'fields:manage' },
     ],
   },
   {
     label: 'CMS',
     to: '/admin/cms',
     icon: 'cms',
+    perm: 'cms:read',
     children: [
-      { label: 'Posts', to: '/admin/posts', icon: 'posts' },
-      { label: 'Categorias', to: '/admin/categorias', icon: 'categorias' },
-      { label: 'Tags', to: '/admin/tags', icon: 'tags' },
+      { label: 'Posts', to: '/admin/posts', icon: 'posts', perm: 'cms:read' },
+      { label: 'Categorias', to: '/admin/categorias', icon: 'categorias', perm: 'cms:read' },
+      { label: 'Tags', to: '/admin/tags', icon: 'tags', perm: 'cms:read' },
     ],
   },
-  { label: 'Imóveis', to: '/admin/imoveis', icon: 'imoveis' },
-  { label: 'Taxas', to: '/admin/taxas', icon: 'taxas' },
+  { label: 'Imóveis', to: '/admin/imoveis', icon: 'imoveis', perm: 'developments:read' },
+  { label: 'Taxas', to: '/admin/taxas', icon: 'taxas', perm: 'locations:manage' },
+  { label: 'Usuários', to: '/admin/usuarios', icon: 'contacts', perm: 'users:manage' },
 ]
+
+// Menu filtrado pelas permissões do usuário. Um grupo some quando nenhum dos seus
+// filhos sobrevive — não deixamos um "CRM" vazio e clicável no menu.
+const visibleNav = computed(() =>
+  nav
+    .filter((item) => !item.perm || can(item.perm))
+    .map((item) => ({
+      ...item,
+      children: item.children?.filter((c) => !c.perm || can(c.perm)),
+    }))
+    .filter((item) => !item.children || item.children.length > 0),
+)
 
 const isActive = (to: string) => route.path === to || route.path.startsWith(to + '/')
 const groupActive = (item: NavItem) => !!item.children?.some((c) => c.to && isActive(c.to))
@@ -62,7 +79,7 @@ function toggle(id: string) {
 }
 function syncExpanded() {
   const s = new Set(expanded.value)
-  for (const item of nav) if (item.children && groupActive(item)) s.add(item.label)
+  for (const item of visibleNav.value) if (item.children && groupActive(item)) s.add(item.label)
   if (route.path.startsWith('/admin/pipelines')) {
     s.add('CRM')
     s.add('pipelines')
@@ -122,7 +139,7 @@ async function signOut() {
       </div>
 
       <nav class="flex-1 p-3 flex flex-col gap-1 overflow-y-auto">
-        <template v-for="item in nav" :key="item.label">
+        <template v-for="item in visibleNav" :key="item.label">
           <!-- grupo: cabeçalho navega + chevron recolhe/expande (padrão recolhido) -->
           <div v-if="item.children" class="mt-2">
             <div class="flex items-center gap-1">

@@ -1,10 +1,17 @@
 // Auth state shared across the app. The session lives in an httpOnly cookie set by
 // the NestJS backend, so we never touch the token here — we only track the user.
+export interface AuthRole {
+  id: string
+  key: string
+  name: string
+}
+
 export interface AuthUser {
   id: string
   email: string
   name: string
-  role: string
+  role: AuthRole | null
+  permissions: string[]
 }
 
 export function useAuth() {
@@ -47,5 +54,16 @@ export function useAuth() {
     }
   }
 
-  return { user, login, fetchMe, logout }
+  // Esconder o que o usuário não pode fazer é cortesia de UI, não segurança: quem
+  // autoriza de verdade é o PermissionsGuard do backend, em toda requisição.
+  function can(permission: string) {
+    return user.value?.permissions.includes(permission) ?? false
+  }
+
+  /** Verdadeiro se o usuário tiver PELO MENOS UMA das permissões (útil p/ menus). */
+  function canAny(...permissions: string[]) {
+    return permissions.some((p) => can(p))
+  }
+
+  return { user, login, fetchMe, logout, can, canAny }
 }

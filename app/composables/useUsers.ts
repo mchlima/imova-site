@@ -4,7 +4,7 @@ export interface CrmUser {
   id: string
   name: string
   email: string
-  role: string
+  roleRef: { key: string; name: string } | null
 }
 
 export function useUsers() {
