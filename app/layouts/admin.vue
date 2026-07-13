@@ -30,9 +30,9 @@ const nav: NavItem[] = [
     children: [
       // Pipelines: dono + funil de cada pipeline são configurados pelo ⚙ na página do
       // pipeline. "Configurações" aqui é global do CRM (campos personalizados).
+      { label: 'Follow-up', to: '/admin/follow-up', icon: 'followup', perm: 'opportunities:read' },
       { label: 'Pipelines', to: '/admin/pipelines', icon: 'opportunities', boards: true, perm: 'opportunities:read' },
       { label: 'Contatos', to: '/admin/contatos', icon: 'contacts', perm: 'contacts:read' },
-      { label: 'Follow-up', to: '/admin/follow-up', icon: 'followup', perm: 'opportunities:read' },
       { label: 'Configurações', to: '/admin/configuracoes', icon: 'settings', perm: 'fields:manage' },
     ],
   },
